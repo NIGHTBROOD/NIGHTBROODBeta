@@ -319,6 +319,18 @@ function CharCreate(player)
 
     -- ADD ADVENTURER COUPON
     player:addItem(0x218);
+    
+    -- ADD CHOCOBO SHIRT
+	player:addItem(10293);
+	
+	-- ADD DESTRIER BERET
+	player:addItem(11811);
+	
+	-- ADD TREAT STAFF II
+	player:addItem(17588);	
+	
+	-- ADD NEXUS CAPE
+	player:addItem(11538);
 
     --SET TITLE
     player:addTitle(NEW_ADVENTURER);
