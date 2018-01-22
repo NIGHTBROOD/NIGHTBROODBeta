@@ -28,7 +28,7 @@ CREATE TABLE `bcnm_info` (
 --
 -- ORDER BY:  `bcnmId`
 
-INSERT INTO `bcnm_info` VALUES (0,139,'rank_2_mission',NULL,NULL,1800,25,6,0,5);
+INSERT INTO `bcnm_info` VALUES (0,139,'rank_2_mission',NULL,NULL,1800,75,6,0,5);
 INSERT INTO `bcnm_info` VALUES (1,139,'tails_of_woe',NULL,NULL,1800,40,6,0,15);
 INSERT INTO `bcnm_info` VALUES (2,139,'dismemberment_brigade',NULL,NULL,1800,60,6,0,15);
 INSERT INTO `bcnm_info` VALUES (3,139,'the_secret_weapon',NULL,NULL,1800,99,6,0,5);
@@ -55,7 +55,7 @@ INSERT INTO `bcnm_info` VALUES (34,140,'wings_of_fury',NULL,NULL,900,20,3,34,15)
 INSERT INTO `bcnm_info` VALUES (35,140,'petrifying_pair',NULL,NULL,900,30,3,35,15);
 INSERT INTO `bcnm_info` VALUES (36,140,'toadal_recall',NULL,NULL,1800,30,6,36,15);
 INSERT INTO `bcnm_info` VALUES (37,140,'mirror_mirror',NULL,NULL,900,40,3,0,7);
-INSERT INTO `bcnm_info` VALUES (64,144,'rank_2_mission',NULL,NULL,1800,25,6,0,5);
+INSERT INTO `bcnm_info` VALUES (64,144,'rank_2_mission',NULL,NULL,1800,75,6,0,5);
 INSERT INTO `bcnm_info` VALUES (65,144,'worms_turn',NULL,NULL,1800,40,6,0,15);
 INSERT INTO `bcnm_info` VALUES (66,144,'grimshell_shocktroopers',NULL,NULL,1800,60,6,0,15);
 INSERT INTO `bcnm_info` VALUES (67,144,'on_my_way',NULL,NULL,1800,99,6,0,5);
@@ -77,7 +77,7 @@ INSERT INTO `bcnm_info` VALUES (82,144,'prehistoric_pigeons',NULL,NULL,1800,0,6,
 INSERT INTO `bcnm_info` VALUES (83,144,'palborough_project',NULL,NULL,900,0,3,0,15);
 INSERT INTO `bcnm_info` VALUES (84,144,'shell_shocked',NULL,NULL,1800,0,6,0,15);
 INSERT INTO `bcnm_info` VALUES (85,144,'beyond_infinity',NULL,NULL,600,0,6,0,6);
-INSERT INTO `bcnm_info` VALUES (96,146,'rank_2_mission',NULL,NULL,1800,25,6,0,5);
+INSERT INTO `bcnm_info` VALUES (96,146,'rank_2_mission',NULL,NULL,1800,75,6,0,5);
 INSERT INTO `bcnm_info` VALUES (97,146,'steamed_sprouts',NULL,NULL,1800,40,6,0,15);
 INSERT INTO `bcnm_info` VALUES (98,146,'divine_punishers',NULL,NULL,1800,60,6,0,15);
 INSERT INTO `bcnm_info` VALUES (99,146,'saintly_invitation',NULL,NULL,1800,99,6,0,5);
@@ -158,7 +158,7 @@ INSERT INTO `bcnm_info` VALUES (482,203,'trial-size_trial_by_ice',NULL,NULL,900,
 INSERT INTO `bcnm_info` VALUES (483,203,'waking_the_beast',NULL,NULL,1800,0,18,0,5);
 INSERT INTO `bcnm_info` VALUES (484,203,'sugar-coated_directive',NULL,NULL,1800,80,6,0,5);
 -- 485 : High-tier Trial by Ice
-INSERT INTO `bcnm_info` VALUES (512,206,'rank_5_mission',NULL,NULL,900,50,6,0,5);
+INSERT INTO `bcnm_info` VALUES (512,206,'rank_5_mission',NULL,NULL,900,75,6,0,5);
 INSERT INTO `bcnm_info` VALUES (513,206,'come_into_my_parlor',NULL,NULL,1800,0,6,0,15);
 INSERT INTO `bcnm_info` VALUES (514,206,'e-vase-ive_action',NULL,NULL,1800,0,6,0,15);
 INSERT INTO `bcnm_info` VALUES (515,206,'infernal_swarm',NULL,NULL,1800,0,6,0,15);
