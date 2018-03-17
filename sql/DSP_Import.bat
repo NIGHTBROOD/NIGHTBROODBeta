@@ -25,4 +25,4 @@ del chars.sql
 del conquest_system.sql
 del delivery_box.sql
 del linkshells.sql
-FOR %%X IN (*.sql) DO ECHO Importing %%X & "c:\program files\mysql\mysql server 5.7\bin\mysql" dspdb -h localhost -u root -pB00410719 < %%X
+FOR %%X IN (*.sql) DO ECHO Importing %%X & "c:\program files\mysql\mysql server 5.7\bin\mysql" dspdb -h localhost -u root -p < %%X
