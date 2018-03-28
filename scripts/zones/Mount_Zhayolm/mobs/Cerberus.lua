@@ -30,6 +30,8 @@ end;
 
 function onMobDeath(mob, player, isKiller)
     player:addTitle(CERBERUS_MUZZLER);
+	player:addCurrency('bayld', 1);
+    player:messageSpecial(BAYLD_OBTAINED, 1);
 end;
 
 -----------------------------------

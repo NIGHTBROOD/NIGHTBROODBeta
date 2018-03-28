@@ -75,6 +75,8 @@ end
 
 function onMobDeath(mob, player, isKiller)
     player:addTitle(VRTRA_VANQUISHER);
+	player:addCurrency('bayld', 10);
+    player:messageSpecial(BAYLD_OBTAINED, 10);
 end;
 
 -----------------------------------

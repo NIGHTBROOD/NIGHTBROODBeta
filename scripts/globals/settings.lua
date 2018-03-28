@@ -65,7 +65,7 @@ NINJUTSU_POWER  = 1.200; -- Multiplies damage dealt by Ninjutsu Magic.
 BLUE_POWER      = 1.200; -- Multiplies damage dealt by Blue Magic.
 DARK_POWER      = 1.200; -- Multiplies amount drained by Dark Magic.
 ITEM_POWER      = 1.200; -- Multiplies the effect of items such as Potions and Ethers.
-WEAPON_SKILL_POWER  = 1.200; -- Multiplies damage dealt by Weapon Skills.
+WEAPON_SKILL_POWER  = 1.500; -- Multiplies damage dealt by Weapon Skills.
 WEAPON_SKILL_POINTS = 10.000; -- Multiplies points earned during weapon unlocking.
 USE_ADOULIN_WEAPON_SKILL_CHANGES = false; -- true/false. Change to toggle new Adoulin weapon skill damage calculations
 
@@ -93,10 +93,11 @@ LandKingSystem_NQ = 2;
 LandKingSystem_HQ = 2;
 
 -- DYNAMIS SETTINGS
-    BETWEEN_2DYNA_WAIT_TIME = 1;        -- wait time between 2 Dynamis (in real day) min: 1 day
+    BETWEEN_2DYNA_WAIT_TIME = 0;        -- wait time between 2 Dynamis (in real day) min: 1 day
         DYNA_MIDNIGHT_RESET = true;     -- if true, makes the wait time count by number of server midnights instead of full 24 hour intervals
              DYNA_LEVEL_MIN = 65;       -- level min for entering in Dynamis
-    TIMELESS_HOURGLASS_COST = 500000;   -- cost of the timeless hourglass for Dynamis.
+    TIMELESS_HOURGLASS_COST = 500000;   -- refund for the timeless hourglass for Dynamis.
+   PRISMATIC_HOURGLASS_COST = 50000;    -- cost of the prismatic hourglass for Dynamis.
      CURRENCY_EXCHANGE_RATE = 100;      -- X Tier 1 ancient currency -> 1 Tier 2, and so on.  Certain values may conflict with shop items.  Not designed to exceed 198.
 RELIC_2ND_UPGRADE_WAIT_TIME = 604800;      -- wait time for 2nd relic upgrade (stage 2 -> stage 3) in seconds. 604800s = 1 RL week.
 RELIC_3RD_UPGRADE_WAIT_TIME = 295200;      -- wait time for 3rd relic upgrade (stage 3 -> stage 4) in seconds. 295200s = 82 hours.
@@ -163,11 +164,13 @@ NUMBER_OF_DM_EARRINGS = 5; -- Number of earrings players can simultaneously own 
 HOMEPOINT_TELEPORT = 1; -- Enables the homepoint teleport system
 DIG_ABUNDANCE_BONUS = 0; -- Increase chance of digging up an item (450  = item digup chance +45)
 DIG_FATIGUE = 1; -- Set to 0 to disable Dig Fatigue
+DIG_GRANT_BURROW = 0; -- Set to 1 to grant burrow ability
+DIG_GRANT_BORE = 0; -- Set to 1 to grant bore ability
 ENM_COOLDOWN = 120;  -- Number of hours before a player can obtain same KI for ENMs (default: 5 days)
 FORCE_SPAWN_QM_RESET_TIME = 300; -- Number of seconds the ??? remains hidden for after the despawning of the mob it force spawns.
 
 -- LIMBUS
-BETWEEN_2COSMOCLEANSE_WAIT_TIME = 3; -- day between 2 limbus keyitem  (default 3 days)
+BETWEEN_2COSMOCLEANSE_WAIT_TIME = 1; -- day between 2 limbus keyitem  (default 3 days)
 DIMENSIONAL_PORTAL_UNLOCK = false; -- Set true to bypass requirements for using dimensional portals to reach sea for Limbus
 
 -- ABYSSEA

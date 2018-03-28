@@ -26,7 +26,6 @@ This file is part of DarkStar-server source code.
 #include "../common/mmo.h"
 #include "../common/showmsg.h"
 #include "../common/socket.h"
-#include "../common/strlib.h"
 #include "../common/taskmgr.h"
 #include "../common/timer.h"
 #include "../common/utils.h"
@@ -158,12 +157,12 @@ void(*PacketParser[512])(map_session_data_t*, CCharEntity*, CBasicPacket);
 
 void PrintPacket(CBasicPacket data)
 {
-    int8 message[50];
+    char message[50];
     memset(&message, 0, 50);
 
-    for (int y = 0; y < data.length(); y++)
+    for (size_t y = 0; y < data.length(); y++)
     {
-        sprintf(message, "%s %02hx", message, *((uint8*)data[y]));
+        sprintf(message, "%s %02hx", message, *((uint8*)data[(const int)y]));
         if (((y + 1) % 16) == 0)
         {
             message[48] = '\n';
@@ -186,7 +185,7 @@ void PrintPacket(CBasicPacket data)
 
 void SmallPacket0x000(map_session_data_t* session, CCharEntity* PChar, CBasicPacket data)
 {
-    ShowWarning(CL_YELLOW"parse: Unhandled game packet %03hX from user: %s\n" CL_RESET, (RBUFW(data, 0) & 0x1FF), PChar->GetName());
+    ShowWarning(CL_YELLOW"parse: Unhandled game packet %03hX from user: %s\n" CL_RESET, (data.ref<uint16>(0) & 0x1FF), PChar->GetName());
     return;
 }
 
@@ -198,7 +197,7 @@ void SmallPacket0x000(map_session_data_t* session, CCharEntity* PChar, CBasicPac
 
 void SmallPacket0xFFF(map_session_data_t* session, CCharEntity* PChar, CBasicPacket data)
 {
-    ShowDebug(CL_CYAN"parse: SmallPacket is not implemented Type<%03hX>\n" CL_RESET, (RBUFW(data, 0) & 0x1FF));
+    ShowDebug(CL_CYAN"parse: SmallPacket is not implemented Type<%03hX>\n" CL_RESET, (data.ref<uint16>(0) & 0x1FF));
     return;
 }
 
@@ -212,7 +211,7 @@ void SmallPacket0xFFF(map_session_data_t* session, CCharEntity* PChar, CBasicPac
 
 void SmallPacket0x00A(map_session_data_t* session, CCharEntity* PChar, CBasicPacket data)
 {
-    WBUFL(data, (0x5C)) = 0;
+    data.ref<uint32>(0x5C) = 0;
 
     PChar->clearPacketList();
 
@@ -240,7 +239,7 @@ void SmallPacket0x00A(map_session_data_t* session, CCharEntity* PChar, CBasicPac
         }
         blowfish_init((int8*)session->blowfish.hash, 16, session->blowfish.P, session->blowfish.S[0]);
 
-        int8 session_key[20 * 2 + 1];
+        char session_key[20 * 2 + 1];
         bin2hex(session_key, (uint8*)session->blowfish.key, 20);
 
         uint16 destination = PChar->loc.destination;
@@ -250,22 +249,11 @@ void SmallPacket0x00A(map_session_data_t* session, CCharEntity* PChar, CBasicPac
             PChar->loc.destination = destination = ZONE_RESIDENTIAL_AREA;
         }
 
-        if (destination == ZONE_RESIDENTIAL_AREA ||
-            destination == ZONE_214 && PChar->m_moghouseID == 0)
-        {
-            PChar->m_moghouseID = PChar->id;
-            destination = PChar->loc.prevzone;
-        }
-        else
-        {
-            PChar->m_moghouseID = 0;
-        }
-
         zoneutils::GetZone(destination)->IncreaseZoneCounter(PChar);
 
         PChar->m_ZonesList[PChar->getZone() >> 3] |= (1 << (PChar->getZone() % 8));
 
-        const int8* fmtQuery = "UPDATE accounts_sessions SET targid = %u, session_key = x'%s', server_addr = %u, client_port = %u WHERE charid = %u";
+        const char* fmtQuery = "UPDATE accounts_sessions SET targid = %u, session_key = x'%s', server_addr = %u, client_port = %u WHERE charid = %u";
 
         // Current zone could either be current zone or destination
         CZone* currentZone = zoneutils::GetZone(PChar->getZone());
@@ -294,7 +282,6 @@ void SmallPacket0x00A(map_session_data_t* session, CCharEntity* PChar, CBasicPac
             if (PChar->getZone() == Sql_GetUIntData(SqlHandle, 0))
                 PChar->loc.zoning = true;
         }
-
         PChar->status = STATUS_NORMAL;
     }
     else
@@ -316,8 +303,7 @@ void SmallPacket0x00A(map_session_data_t* session, CCharEntity* PChar, CBasicPac
     if (!PChar->loc.zoning)
         PChar->StatusEffectContainer->DelStatusEffectsByFlag(EFFECTFLAG_ON_ZONE, true);
 
-    CTaskMgr::getInstance()->AddTask(new CTaskMgr::CTask("afterZoneIn", server_clock::now() + 500ms, (void*)PChar->id, CTaskMgr::TASK_ONCE, luautils::AfterZoneIn));
-    return;
+    PChar->PAI->QueueAction(queueAction_t(400ms, false, luautils::AfterZoneIn));
 }
 
 /************************************************************************
@@ -357,11 +343,10 @@ void SmallPacket0x00C(map_session_data_t* session, CCharEntity* PChar, CBasicPac
             default:
                 break;
             }
-            // reset the petZoning info
-            PChar->resetPetZoningInfo();
         }
     }
-
+    // reset the petZoning info
+    PChar->resetPetZoningInfo();
     return;
 }
 
@@ -421,6 +406,12 @@ void SmallPacket0x00D(map_session_data_t* session, CCharEntity* PChar, CBasicPac
                 PChar->PParty->RemoveMember(PChar);
             }
         }
+
+        if (PChar->PPet != nullptr)
+        {
+            PChar->setPetZoningInfo();
+        }
+
         session->shuttingDown = 1;
         Sql_Query(SqlHandle, "UPDATE char_stats SET zoning = 0 WHERE charid = %u", PChar->id);
     }
@@ -490,6 +481,16 @@ void SmallPacket0x011(map_session_data_t* session, CCharEntity* PChar, CBasicPac
             PChar->pushPacket(new CEquipPacket(PChar->equip[i], i, PChar->equipLoc[i]));
         }
     }
+
+    // todo: kill player til theyre dead and bsod
+    const char* fmtQuery = "SELECT version_mismatch FROM accounts_sessions WHERE charid = %u";
+    int32 ret = Sql_Query(SqlHandle, fmtQuery, PChar->id);
+    if (ret != SQL_ERROR && Sql_NextRow(SqlHandle) == SQL_SUCCESS)
+    {
+        // On zone change, only sending a version message if mismatch
+        if ((bool)Sql_GetUIntData(SqlHandle, 0))
+            PChar->pushPacket(new CChatMessagePacket(PChar, CHAT_MESSAGE_TYPE::MESSAGE_SYSTEM_1, "Server does not support this client version. Please refrain from posting issues on DSP bugtracker."));
+    }
     return;
 }
 
@@ -505,22 +506,22 @@ void SmallPacket0x015(map_session_data_t* session, CCharEntity* PChar, CBasicPac
     if (PChar->status != STATUS_SHUTDOWN &&
         PChar->status != STATUS_DISAPPEAR)
     {
-        bool moved = ((PChar->loc.p.x != RBUFF(data, (0x04))) ||
-            (PChar->loc.p.z != RBUFF(data, (0x0C))) ||
-            (PChar->m_TargID != RBUFW(data, (0x16))));
+        bool moved = ((PChar->loc.p.x != data.ref<float>(0x04)) ||
+            (PChar->loc.p.z != data.ref<float>(0x0C)) ||
+            (PChar->m_TargID != data.ref<uint16>(0x16)));
 
         bool isUpdate = moved || PChar->updatemask & UPDATE_POS;
 
         if (!PChar->isCharmed)
         {
-            PChar->loc.p.x = RBUFF(data, (0x04));
-            PChar->loc.p.y = RBUFF(data, (0x08));
-            PChar->loc.p.z = RBUFF(data, (0x0C));
+            PChar->loc.p.x = data.ref<float>(0x04);
+            PChar->loc.p.y = data.ref<float>(0x08);
+            PChar->loc.p.z = data.ref<float>(0x0C);
 
-            PChar->loc.p.moving = RBUFW(data, (0x12));
-            PChar->loc.p.rotation = RBUFB(data, (0x14));
+            PChar->loc.p.moving = data.ref<uint16>(0x12);
+            PChar->loc.p.rotation = data.ref<uint8>(0x14);
 
-            PChar->m_TargID = RBUFW(data, (0x16));
+            PChar->m_TargID = data.ref<uint16>(0x16);
         }
 
         if (moved)
@@ -558,7 +559,7 @@ void SmallPacket0x015(map_session_data_t* session, CCharEntity* PChar, CBasicPac
 
 void SmallPacket0x016(map_session_data_t* session, CCharEntity* PChar, CBasicPacket data)
 {
-    uint16 targid = RBUFW(data, (0x04));
+    uint16 targid = data.ref<uint16>(0x04);
 
     if (targid == PChar->targid)
     {
@@ -593,11 +594,11 @@ void SmallPacket0x016(map_session_data_t* session, CCharEntity* PChar, CBasicPac
 
 void SmallPacket0x017(map_session_data_t* session, CCharEntity* PChar, CBasicPacket data)
 {
-    uint16 targid = RBUFW(data, (0x04));
-    uint32 npcid = RBUFL(data, (0x08));
-    uint8  type = RBUFB(data, (0x12));
+    uint16 targid = data.ref<uint16>(0x04);
+    uint32 npcid = data.ref<uint32>(0x08);
+    uint8  type = data.ref<uint8>(0x12);
 
-    ShowError(CL_RED"SmallPacket0x17: Incorrect NPC(%u,%u) type(%u)\n" CL_RESET, targid, npcid, type);
+    ShowWarning(CL_YELLOW"SmallPacket0x17: Incorrect NPC(%u,%u) type(%u)\n" CL_RESET, targid, npcid, type);
     return;
 }
 
@@ -609,15 +610,15 @@ void SmallPacket0x017(map_session_data_t* session, CCharEntity* PChar, CBasicPac
 
 void SmallPacket0x01A(map_session_data_t* session, CCharEntity* PChar, CBasicPacket data)
 {
-    uint32 ID = RBUFL(data, (0x04));
-    uint16 TargID = RBUFW(data, (0x08));
-    uint8  action = RBUFB(data, (0x0A));
+    // uint32 ID = data.ref<uint32>(0x04);
+    uint16 TargID = data.ref<uint16>(0x08);
+    uint8  action = data.ref<uint8>(0x0A);
 
     switch (action)
     {
     case 0x00: // trigger
     {
-        if(PChar->StatusEffectContainer->HasPreventActionEffect())
+        if (PChar->StatusEffectContainer->HasPreventActionEffect())
             return;
 
         if (PChar->m_Costum != 0 || PChar->animation == ANIMATION_SYNTH)
@@ -625,14 +626,15 @@ void SmallPacket0x01A(map_session_data_t* session, CCharEntity* PChar, CBasicPac
             PChar->pushPacket(new CReleasePacket(PChar, RELEASE_STANDARD));
             return;
         }
-        CBaseEntity* PNpc = nullptr;
 
+        CBaseEntity* PNpc = nullptr;
         PNpc = PChar->GetEntity(TargID, TYPE_NPC);
 
-        if (PNpc != nullptr && distance(PNpc->loc.p, PChar->loc.p) <= 10)
+        if (PNpc != nullptr && distance(PNpc->loc.p, PChar->loc.p) <= 10 && (PNpc->PAI->IsSpawned() || PChar->m_moghouseID != 0))
         {
             PNpc->PAI->Trigger(PChar->targid);
         }
+
         if (PChar->m_event.EventID == -1)
         {
             PChar->m_event.reset();
@@ -647,8 +649,8 @@ void SmallPacket0x01A(map_session_data_t* session, CCharEntity* PChar, CBasicPac
     break;
     case 0x03: // spellcast
     {
-        uint16 SpellID = RBUFW(data, (0x0C));
-        PChar->PAI->Cast(TargID, SpellID);
+        SpellID spellID = (SpellID)data.ref<uint16>(0x0C);
+        PChar->PAI->Cast(TargID, spellID);
     }
     break;
     case 0x04: // disengage
@@ -679,13 +681,13 @@ void SmallPacket0x01A(map_session_data_t* session, CCharEntity* PChar, CBasicPac
     break;
     case 0x07: // weaponskill
     {
-        uint16 WSkillID = RBUFW(data, (0x0C));
+        uint16 WSkillID = data.ref<uint16>(0x0C);
         PChar->PAI->WeaponSkill(TargID, WSkillID);
     }
     break;
     case 0x09: // jobability
     {
-        uint16 JobAbilityID = RBUFW(data, (0x0C));
+        uint16 JobAbilityID = data.ref<uint16>(0x0C);
         //if ((JobAbilityID < 496 && !charutils::hasAbility(PChar, JobAbilityID - 16)) || JobAbilityID >= 496 && !charutils::hasPetAbility(PChar, JobAbilityID - 512))
         //    return;
         PChar->PAI->Ability(TargID, JobAbilityID - 16);
@@ -695,23 +697,7 @@ void SmallPacket0x01A(map_session_data_t* session, CCharEntity* PChar, CBasicPac
     {
         if (!PChar->isDead())
             return;
-        // remove weakness on homepoint
-        PChar->StatusEffectContainer->DelStatusEffectSilent(EFFECT_WEAKNESS);
-        PChar->StatusEffectContainer->DelStatusEffectSilent(EFFECT_LEVEL_SYNC);
-
-        PChar->health.hp = PChar->GetMaxHP();
-        PChar->health.mp = PChar->GetMaxMP();
-
-        PChar->loc.boundary = 0;
-        PChar->loc.p = PChar->profile.home_point.p;
-        PChar->loc.destination = PChar->profile.home_point.destination;
-
-        PChar->status = STATUS_DISAPPEAR;
-        PChar->animation = ANIMATION_NONE;
-        PChar->updatemask |= UPDATE_HP;
-
-        PChar->clearPacketList();
-        charutils::SendToZone(PChar, 2, zoneutils::GetZoneIPP(PChar->loc.destination));
+        charutils::HomePoint(PChar);
     }
     break;
     case 0x0C: // assist
@@ -723,7 +709,7 @@ void SmallPacket0x01A(map_session_data_t* session, CCharEntity* PChar, CBasicPac
     {
         if (!PChar->m_hasRaise)
             return;
-        if (RBUFB(data, (0x0C)) == 0) //ACCEPTED RAISE
+        if (data.ref<uint8>(0x0C) == 0) //ACCEPTED RAISE
         {
             PChar->Raise();
         }
@@ -780,12 +766,12 @@ void SmallPacket0x01A(map_session_data_t* session, CCharEntity* PChar, CBasicPac
     {
         PChar->animation = ANIMATION_NONE;
         PChar->updatemask |= UPDATE_HP;
-        PChar->StatusEffectContainer->DelStatusEffectSilent(EFFECT_CHOCOBO);
+        PChar->StatusEffectContainer->DelStatusEffectSilent(EFFECT_MOUNTED);
     }
     break;
     case 0x13: // tractor menu
     {
-        if (RBUFB(data, (0x0C)) == 0) //ACCEPTED TRACTOR
+        if (data.ref<uint8>(0x0C) == 0) //ACCEPTED TRACTOR
         {
             //PChar->PBattleAI->SetCurrentAction(ACTION_RAISE_MENU_SELECTION);
             PChar->loc.p = PChar->m_StartActionPos;
@@ -814,10 +800,32 @@ void SmallPacket0x01A(map_session_data_t* session, CCharEntity* PChar, CBasicPac
     break;
     case 0x15: break; // ballista - quarry
     case 0x16: break; // ballista - sprint
-    case 0x18: // /blockaid
+    case 0x18: // blockaid
     {
-        // Blockaid is currently inactive
-        PChar->pushPacket(new CMessageSystemPacket(0, 0, 224));
+        if (!PChar->StatusEffectContainer->HasStatusEffect(EFFECT_ALLIED_TAGS))
+        {
+            uint8 type = data.ref<uint8>(0x0C);
+
+            if (type == 0x00 && PChar->getBlockingAid()) // /blockaid off
+            {
+                // Blockaid canceled
+                PChar->pushPacket(new CMessageSystemPacket(0, 0, 222));
+                PChar->setBlockingAid(false);
+            }
+            else if (type == 0x01 && !PChar->getBlockingAid()) // /blockaid on
+            {
+                // Blockaid activated
+                PChar->pushPacket(new CMessageSystemPacket(0, 0, 221));
+                PChar->setBlockingAid(true);
+            }
+            else if (type == 0x02) // /blockaid
+            {
+                // Blockaid is currently active/inactive
+                PChar->pushPacket(new CMessageSystemPacket(0, 0, PChar->getBlockingAid() ? 223 : 224));
+            }
+        }
+        else
+            PChar->pushPacket(new CMessageSystemPacket(0, 0, 142));
     }
     break;
     default:
@@ -841,7 +849,7 @@ void SmallPacket0x01B(map_session_data_t* session, CCharEntity* PChar, CBasicPac
 {
     // 0 - world pass, 2 - gold world pass; +1 - purchase
 
-    PChar->pushPacket(new CWorldPassPacket(RBUFB(data, (0x04)) & 1 ? dsprand::GetRandomNumber(9999999999) : 0));
+    PChar->pushPacket(new CWorldPassPacket(data.ref<uint8>(0x04) & 1 ? (uint32)dsprand::GetRandomNumber(9999999999) : 0));
     return;
 }
 
@@ -866,9 +874,9 @@ void SmallPacket0x01C(map_session_data_t* session, CCharEntity* PChar, CBasicPac
 
 void SmallPacket0x028(map_session_data_t* session, CCharEntity* PChar, CBasicPacket data)
 {
-    int32  quantity = RBUFB(data, (0x04));
-    uint8 container = RBUFB(data, (0x08));
-    uint8    slotID = RBUFB(data, (0x09));
+    int32  quantity = data.ref<uint8>(0x04);
+    uint8 container = data.ref<uint8>(0x08);
+    uint8    slotID = data.ref<uint8>(0x09);
 
     CItem* PItem = PChar->getStorage(container)->GetItem(slotID);
 
@@ -897,11 +905,11 @@ void SmallPacket0x028(map_session_data_t* session, CCharEntity* PChar, CBasicPac
 
 void SmallPacket0x029(map_session_data_t* session, CCharEntity* PChar, CBasicPacket data)
 {
-    uint32 quantity = RBUFB(data, (0x04));
-    uint8  FromLocationID = RBUFB(data, (0x08));
-    uint8  ToLocationID = RBUFB(data, (0x09));
-    uint8  FromSlotID = RBUFB(data, (0x0A));
-    uint8  ToSlotID = RBUFB(data, (0x0B));
+    uint32 quantity = data.ref<uint8>(0x04);
+    uint8  FromLocationID = data.ref<uint8>(0x08);
+    uint8  ToLocationID = data.ref<uint8>(0x09);
+    uint8  FromSlotID = data.ref<uint8>(0x0A);
+    uint8  ToSlotID = data.ref<uint8>(0x0B);
 
     if (ToLocationID >= MAX_CONTAINER_ID ||
         FromLocationID >= MAX_CONTAINER_ID)
@@ -958,7 +966,7 @@ void SmallPacket0x029(map_session_data_t* session, CCharEntity* PChar, CBasicPac
 
         if (NewSlotID != ERROR_SLOTID)
         {
-            const int8* Query = "UPDATE char_inventory SET location = %u, slot = %u WHERE charid = %u AND location = %u AND slot = %u;";
+            const char* Query = "UPDATE char_inventory SET location = %u, slot = %u WHERE charid = %u AND location = %u AND slot = %u;";
 
             if (Sql_Query(SqlHandle, Query, ToLocationID, NewSlotID, PChar->id, FromLocationID, FromSlotID) != SQL_ERROR &&
                 Sql_AffectedRows(SqlHandle) != 0)
@@ -1005,17 +1013,30 @@ void SmallPacket0x029(map_session_data_t* session, CCharEntity* PChar, CBasicPac
 
 void SmallPacket0x032(map_session_data_t* session, CCharEntity* PChar, CBasicPacket data)
 {
-    uint32 charid = RBUFL(data, (0x04));
-    uint16 targid = RBUFW(data, (0x08));
+    uint32 charid = data.ref<uint32>(0x04);
+    uint16 targid = data.ref<uint16>(0x08);
 
     CCharEntity* PTarget = (CCharEntity*)PChar->GetEntity(targid, TYPE_PC);
-    ShowDebug(CL_CYAN"%s initiated trade request with %s\n" CL_RESET, PChar->GetName(), PTarget->GetName());
+
     if ((PTarget != nullptr) && (PTarget->id == charid))
     {
+        ShowDebug(CL_CYAN"%s initiated trade request with %s\n" CL_RESET, PChar->GetName(), PTarget->GetName());
         if (jailutils::InPrison(PChar) || jailutils::InPrison(PTarget))
         {
             // If either player is in prison don't allow the trade.
             PChar->pushPacket(new CMessageBasicPacket(PChar, PChar, 0, 0, 316));
+            return;
+        }
+
+        // check /blockaid
+        if (charutils::IsAidBlocked(PChar, PTarget))
+        {
+            ShowDebug(CL_CYAN"%s is blocking trades\n" CL_RESET, PTarget->GetName());
+            // Target is blocking assistance
+            PChar->pushPacket(new CMessageSystemPacket(0, 0, 225));
+            // Interaction was blocked
+            PTarget->pushPacket(new CMessageSystemPacket(0, 0, 226));
+            PChar->pushPacket(new CTradeActionPacket(PTarget, 0x01));
             return;
         }
 
@@ -1052,7 +1073,7 @@ void SmallPacket0x033(map_session_data_t* session, CCharEntity* PChar, CBasicPac
 
     if (PTarget != nullptr && PChar->TradePending.id == PTarget->id)
     {
-        uint16 action = RBUFB(data, (0x04));
+        uint16 action = data.ref<uint8>(0x04);
 
         switch (action)
         {
@@ -1150,10 +1171,10 @@ void SmallPacket0x033(map_session_data_t* session, CCharEntity* PChar, CBasicPac
 
 void SmallPacket0x034(map_session_data_t* session, CCharEntity* PChar, CBasicPacket data)
 {
-    uint32 quantity = RBUFL(data, (0x04));
-    uint16 itemID = RBUFW(data, (0x08));
-    uint8  invSlotID = RBUFB(data, (0x0A));
-    uint8  tradeSlotID = RBUFB(data, (0x0B));
+    uint32 quantity = data.ref<uint32>(0x04);
+    uint16 itemID = data.ref<uint16>(0x08);
+    uint8  invSlotID = data.ref<uint8>(0x0A);
+    uint8  tradeSlotID = data.ref<uint8>(0x0B);
 
     CCharEntity* PTarget = (CCharEntity*)PChar->GetEntity(PChar->TradePending.targid, TYPE_PC);
 
@@ -1167,16 +1188,17 @@ void SmallPacket0x034(map_session_data_t* session, CCharEntity* PChar, CBasicPac
             if (PItem->getFlag() & ITEM_FLAG_EX)
                 return;
 
-            PItem->setReserve(quantity);
             // If item count is zero.. remove from container..
             if (quantity > 0)
             {
                 ShowDebug(CL_CYAN"%s->%s trade updating trade slot id %d with item %s, quantity %d\n" CL_RESET, PChar->GetName(), PTarget->GetName(), tradeSlotID, PItem->getName(), quantity);
+                PItem->setReserve(quantity + PItem->getReserve());
                 PChar->UContainer->SetItem(tradeSlotID, PItem);
             }
             else
             {
-                ShowDebug(CL_CYAN"%s->%s trade updating trade slot id %d with item %d, quantity 0\n" CL_RESET, PChar->GetName(), PTarget->GetName(), tradeSlotID, PItem->getName());
+                ShowDebug(CL_CYAN"%s->%s trade updating trade slot id %d with item %s, quantity 0\n" CL_RESET, PChar->GetName(), PTarget->GetName(), tradeSlotID, PItem->getName());
+                PItem->setReserve(0);
                 PChar->UContainer->SetItem(tradeSlotID, nullptr);
             }
             ShowDebug(CL_CYAN"%s->%s trade pushing packet to %s\n" CL_RESET, PChar->GetName(), PTarget->GetName(), PChar->GetName());
@@ -1200,21 +1222,21 @@ void SmallPacket0x034(map_session_data_t* session, CCharEntity* PChar, CBasicPac
 
 void SmallPacket0x036(map_session_data_t* session, CCharEntity* PChar, CBasicPacket data)
 {
-    uint32 npcid = RBUFL(data, (0x04));
-    uint16 targid = RBUFW(data, (0x3A));
+    uint32 npcid = data.ref<uint32>(0x04);
+    uint16 targid = data.ref<uint16>(0x3A);
 
     CBaseEntity* PNpc = PChar->GetEntity(targid, TYPE_NPC);
 
     if ((PNpc != nullptr) && (PNpc->id == npcid) && distance(PNpc->loc.p, PChar->loc.p) <= 10)
     {
-        uint8 numItems = RBUFB(data, (0x3C));
+        uint8 numItems = data.ref<uint8>(0x3C);
 
         PChar->TradeContainer->Clean();
 
         for (int32 slotID = 0; slotID < numItems; ++slotID)
         {
-            uint8  invSlotID = RBUFB(data, (0x30 + slotID));
-            uint32 Quantity = RBUFL(data, (0x08 + slotID * 4));
+            uint8  invSlotID = data.ref<uint8>(0x30 + slotID);
+            uint32 Quantity = data.ref<uint32>(0x08 + slotID * 4);
 
             CItem* PItem = PChar->getStorage(LOC_INVENTORY)->GetItem(invSlotID);
 
@@ -1238,10 +1260,10 @@ void SmallPacket0x036(map_session_data_t* session, CCharEntity* PChar, CBasicPac
 
 void SmallPacket0x037(map_session_data_t* session, CCharEntity* PChar, CBasicPacket data)
 {
-    uint32 EntityID = RBUFL(data, (0x04));
-    uint16 TargetID = RBUFW(data, (0x0C));
-    uint8  SlotID = RBUFB(data, (0x0E));
-    uint8  StorageID = RBUFB(data, (0x10));
+    // uint32 EntityID = data.ref<uint32>(0x04);
+    uint16 TargetID = data.ref<uint16>(0x0C);
+    uint8  SlotID = data.ref<uint8>(0x0E);
+    uint8  StorageID = data.ref<uint8>(0x10);
 
     if (PChar->UContainer->GetType() != UCONTAINER_USEITEM)
         PChar->PAI->UseItem(TargetID, StorageID, SlotID);
@@ -1259,13 +1281,13 @@ void SmallPacket0x037(map_session_data_t* session, CCharEntity* PChar, CBasicPac
 
 void SmallPacket0x03A(map_session_data_t* session, CCharEntity* PChar, CBasicPacket data)
 {
-    CItemContainer* PItemContainer = PChar->getStorage(RBUFB(data, (0x04)));
+    CItemContainer* PItemContainer = PChar->getStorage(data.ref<uint8>(0x04));
 
     uint8 size = PItemContainer->GetSize();
 
     if (gettick() - PItemContainer->LastSortingTime < 1000)
     {
-        if (map_config.lightluggage_block == ++PItemContainer->SortingPacket)
+        if (map_config.lightluggage_block == (int32)(++PItemContainer->SortingPacket))
         {
             ShowWarning(CL_YELLOW"lightluggage detected: <%s> will be removed from server\n" CL_RESET, PChar->GetName());
 
@@ -1307,8 +1329,8 @@ void SmallPacket0x03A(map_session_data_t* session, CCharEntity* PChar, CBasicPac
                     }
                     if (moveQty > 0)
                     {
-                        charutils::UpdateItem(PChar, PItemContainer->GetID(), slotID, moveQty);
-                        charutils::UpdateItem(PChar, PItemContainer->GetID(), slotID2, -(int32)moveQty);
+                        charutils::UpdateItem(PChar, (uint8)PItemContainer->GetID(), slotID, moveQty);
+                        charutils::UpdateItem(PChar, (uint8)PItemContainer->GetID(), slotID2, -(int32)moveQty);
                     }
                 }
             }
@@ -1340,21 +1362,21 @@ void SmallPacket0x03C(map_session_data_t* session, CCharEntity* PChar, CBasicPac
 void SmallPacket0x03D(map_session_data_t* session, CCharEntity* PChar, CBasicPacket data)
 {
     const int8* name = (const int8*)(data[0x08]);
-    uint8 cmd = RBUFB(data, 0x18);
+    uint8 cmd = data.ref<uint8>(0x18);
 
     // Attempt to locate the character by their name..
-    const int8* sql = "SELECT charid, accid FROM chars WHERE charname = '%s' LIMIT 1";
+    const char* sql = "SELECT charid, accid FROM chars WHERE charname = '%s' LIMIT 1";
     int32 ret = Sql_Query(SqlHandle, sql, name);
     if (ret == SQL_ERROR || Sql_NumRows(SqlHandle) != 1 || Sql_NextRow(SqlHandle) != SQL_SUCCESS)
     {
         // Send failed..
-        PChar->pushPacket(new CBlacklistPacket(0, "", 0x02));
+        PChar->pushPacket(new CBlacklistPacket(0, (const int8*)"", 0x02));
         return;
     }
 
     // Retrieve the data from Sql..
-    int32 charid = Sql_GetIntData(SqlHandle, 0);
-    int32 accid = Sql_GetIntData(SqlHandle, 1);
+    uint32 charid = Sql_GetUIntData(SqlHandle, 0);
+    uint32 accid = Sql_GetUIntData(SqlHandle, 1);
 
     // User is trying to add someone to their blacklist..
     if (cmd == 0x00)
@@ -1362,7 +1384,7 @@ void SmallPacket0x03D(map_session_data_t* session, CCharEntity* PChar, CBasicPac
         if (blacklistutils::IsBlacklisted(PChar->id, charid))
         {
             // We cannot readd this person, fail to add..
-            PChar->pushPacket(new CBlacklistPacket(0, "", 0x02));
+            PChar->pushPacket(new CBlacklistPacket(0, (const int8*)"", 0x02));
             return;
         }
 
@@ -1370,7 +1392,7 @@ void SmallPacket0x03D(map_session_data_t* session, CCharEntity* PChar, CBasicPac
         if (blacklistutils::AddBlacklisted(PChar->id, charid))
             PChar->pushPacket(new CBlacklistPacket(accid, name, cmd));
         else
-            PChar->pushPacket(new CBlacklistPacket(0, "", 0x02));
+            PChar->pushPacket(new CBlacklistPacket(0, (const int8*)"", 0x02));
     }
 
     // User is trying to remove someone from their blacklist..
@@ -1379,7 +1401,7 @@ void SmallPacket0x03D(map_session_data_t* session, CCharEntity* PChar, CBasicPac
         if (!blacklistutils::IsBlacklisted(PChar->id, charid))
         {
             // We cannot remove this person, fail to remove..
-            PChar->pushPacket(new CBlacklistPacket(0, "", 0x02));
+            PChar->pushPacket(new CBlacklistPacket(0, (const int8*)"", 0x02));
             return;
         }
 
@@ -1387,12 +1409,12 @@ void SmallPacket0x03D(map_session_data_t* session, CCharEntity* PChar, CBasicPac
         if (blacklistutils::DeleteBlacklisted(PChar->id, charid))
             PChar->pushPacket(new CBlacklistPacket(accid, name, cmd));
         else
-            PChar->pushPacket(new CBlacklistPacket(0, "", 0x02));
+            PChar->pushPacket(new CBlacklistPacket(0, (const int8*)"", 0x02));
     }
     else
     {
         // Send failed..
-        PChar->pushPacket(new CBlacklistPacket(0, "", 0x02));
+        PChar->pushPacket(new CBlacklistPacket(0, (const int8*)"", 0x02));
     }
 }
 
@@ -1408,7 +1430,7 @@ void SmallPacket0x041(map_session_data_t* session, CCharEntity* PChar, CBasicPac
 
     if (PChar->PTreasurePool != nullptr)
     {
-        uint8 SlotID = RBUFB(data, (0x04));
+        uint8 SlotID = data.ref<uint8>(0x04);
 
         if (!PChar->PTreasurePool->HasLottedItem(PChar, SlotID))
         {
@@ -1429,7 +1451,7 @@ void SmallPacket0x042(map_session_data_t* session, CCharEntity* PChar, CBasicPac
 
     if (PChar->PTreasurePool != nullptr)
     {
-        uint8 SlotID = RBUFB(data, (0x04));
+        uint8 SlotID = data.ref<uint8>(0x04);
 
         if (!PChar->PTreasurePool->HasPassedItem(PChar, SlotID))
         {
@@ -1446,14 +1468,14 @@ void SmallPacket0x042(map_session_data_t* session, CCharEntity* PChar, CBasicPac
 
 void SmallPacket0x04B(map_session_data_t* session, CCharEntity* PChar, CBasicPacket data)
 {
-    uint8   msg_chunk = RBUFB(data, (0x04)); // The current chunk of the message to send.. (1 = start, 2 = rest of message)
-    uint8   msg_unknown1 = RBUFB(data, (0x05)); // Unknown.. always 0
-    uint8   msg_unknown2 = RBUFB(data, (0x06)); // Unknown.. always 1
-    uint8   msg_language = RBUFB(data, (0x07)); // Language request id (2 = English, 4 = French)
-    uint32  msg_timestamp = RBUFL(data, (0x08)); // The message timestamp being requested..
-    uint32  msg_size_total = RBUFL(data, (0x0C)); // The total length of the requested server message..
-    uint32  msg_offset = RBUFL(data, (0x10)); // The offset to start obtaining the server message..
-    uint32  msg_request_len = RBUFL(data, (0x14)); // The total requested size of send to the client..
+    // uint8   msg_chunk = data.ref<uint8>(0x04); // The current chunk of the message to send.. (1 = start, 2 = rest of message)
+    // uint8   msg_unknown1 = data.ref<uint8>(0x05); // Unknown.. always 0
+    // uint8   msg_unknown2 = data.ref<uint8>(0x06); // Unknown.. always 1
+    uint8   msg_language = data.ref<uint8>(0x07); // Language request id (2 = English, 4 = French)
+    uint32  msg_timestamp = data.ref<uint32>(0x08); // The message timestamp being requested..
+    // uint32  msg_size_total = data.ref<uint32>(0x0C); // The total length of the requested server message..
+    uint32  msg_offset = data.ref<uint32>(0x10); // The offset to start obtaining the server message..
+    // uint32  msg_request_len = data.ref<uint32>(0x14); // The total requested size of send to the client..
 
     if (msg_language == 0x02)
         PChar->pushPacket(new CServerMessagePacket(map_config.server_message, msg_language, msg_timestamp, msg_offset));
@@ -1462,6 +1484,16 @@ void SmallPacket0x04B(map_session_data_t* session, CCharEntity* PChar, CBasicPac
 
     PChar->pushPacket(new CCharSyncPacket(PChar));
 
+    // todo: kill player til theyre dead and bsod
+    const char* fmtQuery = "SELECT version_mismatch FROM accounts_sessions WHERE charid = %u";
+    int32 ret = Sql_Query(SqlHandle, fmtQuery, PChar->id);
+    if (ret != SQL_ERROR && Sql_NextRow(SqlHandle) == SQL_SUCCESS)
+    {
+        if ((bool)Sql_GetUIntData(SqlHandle, 0))
+            PChar->pushPacket(new CChatMessagePacket(PChar, CHAT_MESSAGE_TYPE::MESSAGE_SYSTEM_1, "Server does not support this client version. Please refrain from posting issues on DSP bugtracker."));
+        else
+            PChar->pushPacket(new CChatMessagePacket(PChar, CHAT_MESSAGE_TYPE::MESSAGE_SYSTEM_1, "Report bugs at DSP bugtracker if !revision output matches latest commit hash and server admin confirms the bug occurs on stock DSP."));
+    }
     return;
 }
 
@@ -1473,11 +1505,11 @@ void SmallPacket0x04B(map_session_data_t* session, CCharEntity* PChar, CBasicPac
 
 void SmallPacket0x04D(map_session_data_t* session, CCharEntity* PChar, CBasicPacket data)
 {
-    uint8 action = RBUFB(data, (0x04));
-    uint8 boxtype = RBUFB(data, (0x05));
-    uint8 slotID = RBUFB(data, (0x06));
+    uint8 action = data.ref<uint8>(0x04);
+    uint8 boxtype = data.ref<uint8>(0x05);
+    uint8 slotID = data.ref<uint8>( 0x06);
 
-    ShowDebug(CL_CYAN"DeliveryBox Action (%02hx)\n" CL_RESET, RBUFB(data, (0x04)));
+    ShowDebug(CL_CYAN"DeliveryBox Action (%02hx)\n" CL_RESET, data.ref<uint8>(0x04));
     PrintPacket(data);
 
     // 0x01 - Send old items..
@@ -1500,9 +1532,7 @@ void SmallPacket0x04D(map_session_data_t* session, CCharEntity* PChar, CBasicPac
     {
     case 0x01:
     {
-        int8* fmtQuery;
-
-        fmtQuery = "SELECT itemid, itemsubid, slot, quantity, sent, extra, sender, charname FROM delivery_box WHERE charid = %u AND box = %d AND slot < 8 ORDER BY slot;";
+        const char* fmtQuery = "SELECT itemid, itemsubid, slot, quantity, sent, extra, sender, charname FROM delivery_box WHERE charid = %u AND box = %d AND slot < 8 ORDER BY slot;";
 
         int32 ret = Sql_Query(SqlHandle, fmtQuery, PChar->id, boxtype);
 
@@ -1527,12 +1557,21 @@ void SmallPacket0x04D(map_session_data_t* session, CCharEntity* PChar, CBasicPac
                         }
 
                         size_t length = 0;
-                        int8* extra = nullptr;
+                        char* extra = nullptr;
                         Sql_GetData(SqlHandle, 5, &extra, &length);
                         memcpy(PItem->m_extra, extra, (length > sizeof(PItem->m_extra) ? sizeof(PItem->m_extra) : length));
 
-                        PItem->setSender(Sql_GetData(SqlHandle, 6));
-                        PItem->setReceiver(Sql_GetData(SqlHandle, 7));
+                        if (boxtype == 2)
+                        {
+                            PItem->setSender(Sql_GetData(SqlHandle, 7));
+                            PItem->setReceiver(Sql_GetData(SqlHandle, 6));
+                        }
+                        else
+                        {
+                            PItem->setSender(Sql_GetData(SqlHandle, 6));
+                            PItem->setReceiver(Sql_GetData(SqlHandle, 7));
+                        }
+
 
                         PChar->UContainer->SetItem(PItem->getSlotID(), PItem);
                         ++items;
@@ -1548,8 +1587,8 @@ void SmallPacket0x04D(map_session_data_t* session, CCharEntity* PChar, CBasicPac
     }
     case 0x02: //add items to send box
     {
-        uint8 invslot = RBUFB(data, (0x07));
-        uint32 quantity = RBUFL(data, (0x08));
+        uint8 invslot = data.ref<uint8>(0x07);
+        uint32 quantity = data.ref<uint32>(0x08);
         CItem* PItem = PChar->getStorage(LOC_INVENTORY)->GetItem(invslot);
 
         if (quantity > 0 && PItem && PItem->getQuantity() >= quantity && PChar->UContainer->IsSlotEmpty(slotID))
@@ -1577,8 +1616,8 @@ void SmallPacket0x04D(map_session_data_t* session, CCharEntity* PChar, CBasicPac
                 PUBoxItem->setSlotID(PItem->getSlotID());
                 memcpy(PUBoxItem->m_extra, PItem->m_extra, sizeof(PUBoxItem->m_extra));
 
-                int8 extra[sizeof(PItem->m_extra) * 2 + 1];
-                Sql_EscapeStringLen(SqlHandle, extra, (const int8*)PItem->m_extra, sizeof(PItem->m_extra));
+                char extra[sizeof(PItem->m_extra) * 2 + 1];
+                Sql_EscapeStringLen(SqlHandle, extra, (const char*)PItem->m_extra, sizeof(PItem->m_extra));
 
                 ret = Sql_Query(SqlHandle,
                     "INSERT INTO delivery_box(charid, charname, box, slot, itemid, itemsubid, quantity, extra, senderid, sender) VALUES(%u, '%s', 2, %u, %u, %u, %u, '%s', %u, '%s'); ",
@@ -1638,8 +1677,8 @@ void SmallPacket0x04D(map_session_data_t* session, CCharEntity* PChar, CBasicPac
 
                         if (ret != SQL_ERROR && Sql_AffectedRows(SqlHandle) == 1)
                         {
-                            int8 extra[sizeof(PItem->m_extra) * 2 + 1];
-                            Sql_EscapeStringLen(SqlHandle, extra, (const int8*)PItem->m_extra, sizeof(PItem->m_extra));
+                            char extra[sizeof(PItem->m_extra) * 2 + 1];
+                            Sql_EscapeStringLen(SqlHandle, extra, (const char*)PItem->m_extra, sizeof(PItem->m_extra));
 
                             ret = Sql_Query(SqlHandle,
                                 "INSERT INTO delivery_box(charid, charname, box, itemid, itemsubid, quantity, extra, senderid, sender) VALUES(%u, '%s', 1, %u, %u, %u, '%s', %u, '%s'); ",
@@ -1680,6 +1719,8 @@ void SmallPacket0x04D(map_session_data_t* session, CCharEntity* PChar, CBasicPac
         {
             bool isAutoCommitOn = Sql_GetAutoCommit(SqlHandle);
             bool commit = false;
+            bool orphan = false;
+            CItem* PItem = PChar->UContainer->GetItem(slotID);
 
             if (Sql_SetAutoCommit(SqlHandle, false) && Sql_TransactionStart(SqlHandle))
             {
@@ -1692,7 +1733,6 @@ void SmallPacket0x04D(map_session_data_t* session, CCharEntity* PChar, CBasicPac
 
                     if (ret != SQL_ERROR && Sql_AffectedRows(SqlHandle) == 1)
                     {
-                        CItem* PItem = PChar->UContainer->GetItem(slotID);
                         int32 ret = Sql_Query(SqlHandle, "DELETE FROM delivery_box WHERE senderid = %u AND box = 1 AND charid = %u AND itemid = %u AND quantity = %u AND slot >= 8 LIMIT 1;",
                             PChar->id, charid, PItem->getID(), PItem->getQuantity());
 
@@ -1703,12 +1743,28 @@ void SmallPacket0x04D(map_session_data_t* session, CCharEntity* PChar, CBasicPac
                             PChar->pushPacket(new CDeliveryBoxPacket(action, boxtype, PChar->UContainer->GetItem(slotID), slotID, PChar->UContainer->GetItemsCount(), 0x02));
                             PChar->pushPacket(new CDeliveryBoxPacket(action, boxtype, PChar->UContainer->GetItem(slotID), slotID, PChar->UContainer->GetItemsCount(), 0x01));
                         }
+                        else if (ret != SQL_ERROR && Sql_AffectedRows(SqlHandle) == 0)
+                            orphan = true;
                     }
                 }
+                else if (ret != SQL_ERROR && Sql_NumRows(SqlHandle) == 0)
+                    orphan = true;
+
                 if (!commit || !Sql_TransactionCommit(SqlHandle))
                 {
                     Sql_TransactionRollback(SqlHandle);
-                    ShowError("Could not finalize cancel send transaction. PlayerID: %d slotID: %d", PChar->id, slotID);
+                    ShowError("Could not finalize cancel send transaction. PlayerID: %d slotID: %d\n", PChar->id, slotID);
+                    if (orphan)
+                    {
+                        Sql_SetAutoCommit(SqlHandle, true);
+                        int32 ret = Sql_Query(SqlHandle, "DELETE FROM delivery_box WHERE box = 2 AND charid = %u AND itemid = %u AND quantity = %u AND slot = %u LIMIT 1;",
+                            PChar->id, PItem->getID(), PItem->getQuantity(), slotID);
+                        if (ret != SQL_ERROR && Sql_AffectedRows(SqlHandle) == 1)
+                        {
+                            ShowError("Deleting orphaned outbox record. PlayerID: %d slotID: %d itemID: %d\n", PChar->id, slotID, PItem->getID());
+                            PChar->pushPacket(new CDeliveryBoxPacket(0x0F, boxtype, 0, 1));
+                        }
+                    }
                     //error message: "Delivery orders are currently backlogged."
                     PChar->pushPacket(new CDeliveryBoxPacket(action, boxtype, 0, -1));
                 }
@@ -1748,7 +1804,7 @@ void SmallPacket0x04D(map_session_data_t* session, CCharEntity* PChar, CBasicPac
 
         if (ret != SQL_ERROR)
         {
-            received_items = Sql_NumRows(SqlHandle);
+            received_items = (uint8)Sql_NumRows(SqlHandle);
         }
         PChar->pushPacket(new CDeliveryBoxPacket(action, boxtype, 0xFF, 0x02));
         PChar->pushPacket(new CDeliveryBoxPacket(action, boxtype, received_items, 0x01));
@@ -1780,7 +1836,7 @@ void SmallPacket0x04D(map_session_data_t* session, CCharEntity* PChar, CBasicPac
                         PItem->setQuantity(Sql_GetUIntData(SqlHandle, 2));
 
                         size_t length = 0;
-                        int8* extra = nullptr;
+                        char* extra = nullptr;
                         Sql_GetData(SqlHandle, 3, &extra, &length);
                         memcpy(PItem->m_extra, extra, (length > sizeof(PItem->m_extra) ? sizeof(PItem->m_extra) : length));
 
@@ -1791,22 +1847,27 @@ void SmallPacket0x04D(map_session_data_t* session, CCharEntity* PChar, CBasicPac
                             PItem->setSlotID(slotID);
 
                             //the result of this query doesn't really matter, it can be sent from the auction house which has no sender record
-                            Sql_Query(SqlHandle, "UPDATE delivery_box SET received = 1 WHERE senderid = %u AND charid = %u AND box = 2 AND received = 0 AND quantity = %u LIMIT 1;",
-                                PChar->id, senderID, PItem->getQuantity());
+                            Sql_Query(SqlHandle, "UPDATE delivery_box SET received = 1 WHERE senderid = %u AND charid = %u AND box = 2 AND received = 0 AND quantity = %u AND sent = 1 AND itemid = %u LIMIT 1;",
+                                PChar->id, senderID, PItem->getQuantity(), PItem->getID());
 
-                            Query = "UPDATE delivery_box SET slot = %u WHERE charid = %u AND box = 1 AND slot = 8;";
-                            ret = Sql_Query(SqlHandle, Query.c_str(), slotID, PChar->id);
-                            if (ret != SQL_ERROR)
+                            Sql_Query(SqlHandle, "SELECT slot FROM delivery_box WHERE charid = %u AND box = 1 AND slot > 7 ORDER BY slot ASC;", PChar->id);
+                            if (ret != SQL_ERROR && Sql_NumRows(SqlHandle) > 0 && Sql_NextRow(SqlHandle) == SQL_SUCCESS)
                             {
-                                Query = "UPDATE delivery_box SET slot = slot - 1 WHERE charid = %u AND box = 1 AND slot > 8;";
-                                ret = Sql_Query(SqlHandle, Query.c_str(), PChar->id);
+                                uint8 queue = Sql_GetUIntData(SqlHandle, 0);
+                                Query = "UPDATE delivery_box SET slot = %u WHERE charid = %u AND box = 1 AND slot = %u;";
+                                ret = Sql_Query(SqlHandle, Query.c_str(), slotID, PChar->id, queue);
                                 if (ret != SQL_ERROR)
                                 {
-                                    PChar->UContainer->SetItem(slotID, PItem);
-                                    //TODO: increment "count" for every new item, if needed
-                                    PChar->pushPacket(new CDeliveryBoxPacket(action, boxtype, nullptr, slotID, 1, 2));
-                                    PChar->pushPacket(new CDeliveryBoxPacket(action, boxtype, PItem, slotID, 1, 1));
-                                    commit = true;
+                                    Query = "UPDATE delivery_box SET slot = slot - 1 WHERE charid = %u AND box = 1 AND slot > %u;";
+                                    ret = Sql_Query(SqlHandle, Query.c_str(), PChar->id, queue);
+                                    if (ret != SQL_ERROR)
+                                    {
+                                        PChar->UContainer->SetItem(slotID, PItem);
+                                        //TODO: increment "count" for every new item, if needed
+                                        PChar->pushPacket(new CDeliveryBoxPacket(action, boxtype, nullptr, slotID, 1, 2));
+                                        PChar->pushPacket(new CDeliveryBoxPacket(action, boxtype, PItem, slotID, 1, 1));
+                                        commit = true;
+                                    }
                                 }
                             }
                         }
@@ -1830,32 +1891,32 @@ void SmallPacket0x04D(map_session_data_t* session, CCharEntity* PChar, CBasicPac
     case 0x07: //remove received items from send box
     {
         uint8 received_items = 0;
-        uint8 first_received = 0xFF;
-        for (int i = 0; i < 8; ++i)
+        uint8 slotID = 0;
+
+        int32 ret = Sql_Query(SqlHandle, "SELECT slot FROM delivery_box WHERE charid = %u AND received = 1 AND box = 2 ORDER BY slot ASC;", PChar->id);
+
+        if (ret != SQL_ERROR)
         {
-            if (!PChar->UContainer->IsSlotEmpty(i))
+            received_items = (uint8)Sql_NumRows(SqlHandle);
+            if (received_items && Sql_NextRow(SqlHandle) == SQL_SUCCESS)
             {
-                CItem* PItem = PChar->UContainer->GetItem(i);
-                if (PItem->isSent())
+                slotID = Sql_GetUIntData(SqlHandle, 0);
+                if (!PChar->UContainer->IsSlotEmpty(slotID))
                 {
-                    if (first_received == 0xFF)
+                    CItem* PItem = PChar->UContainer->GetItem(slotID);
+                    if (PItem->isSent())
                     {
-                        first_received = i;
+                        ret = Sql_Query(SqlHandle, "DELETE FROM delivery_box WHERE charid = %u AND box = 2 AND slot = %u LIMIT 1;", PChar->id, slotID);
+                        if (ret != SQL_ERROR && Sql_AffectedRows(SqlHandle) == 1)
+                        {
+                            PChar->pushPacket(new CDeliveryBoxPacket(action, boxtype, 0, 0x02));
+                            PChar->pushPacket(new CDeliveryBoxPacket(action, boxtype, PItem, slotID, received_items, 0x01));
+                            PChar->UContainer->SetItem(slotID, nullptr);
+                            delete PItem;
+                        }
                     }
-                    received_items++;
                 }
             }
-        }
-        CItem* PItem = PChar->UContainer->GetItem(first_received);
-
-        int32 ret = Sql_Query(SqlHandle, "DELETE FROM delivery_box WHERE charid = %u AND box = 2 AND slot = %u LIMIT 1;", PChar->id, first_received);
-
-        if (ret != SQL_ERROR && Sql_AffectedRows(SqlHandle) == 1)
-        {
-            PChar->pushPacket(new CDeliveryBoxPacket(action, boxtype, 0, 0x02));
-            PChar->pushPacket(new CDeliveryBoxPacket(action, boxtype, PItem, first_received, received_items, 0x01));
-            PChar->UContainer->SetItem(first_received, nullptr);
-            delete PItem;
         }
         return;
     }
@@ -1890,12 +1951,12 @@ void SmallPacket0x04D(map_session_data_t* session, CCharEntity* PChar, CBasicPac
                 if (ret != SQL_ERROR && Sql_NumRows(SqlHandle) > 0 && Sql_NextRow(SqlHandle) == SQL_SUCCESS)
                 {
                     senderID = Sql_GetUIntData(SqlHandle, 0);
-                    senderName.insert(0, Sql_GetData(SqlHandle, 1));
+                    senderName.insert(0, (const char*)Sql_GetData(SqlHandle, 1));
 
                     if (senderID != 0)
                     {
-                        int8 extra[sizeof(PItem->m_extra) * 2 + 1];
-                        Sql_EscapeStringLen(SqlHandle, extra, (const int8*)PItem->m_extra, sizeof(PItem->m_extra));
+                        char extra[sizeof(PItem->m_extra) * 2 + 1];
+                        Sql_EscapeStringLen(SqlHandle, extra, (const char*)PItem->m_extra, sizeof(PItem->m_extra));
 
                         // Insert a return record into delivery_box
                         ret = Sql_Query(SqlHandle,
@@ -1916,15 +1977,10 @@ void SmallPacket0x04D(map_session_data_t* session, CCharEntity* PChar, CBasicPac
 
                             if (ret != SQL_ERROR && Sql_AffectedRows(SqlHandle) > 0)
                             {
-                                ret = Sql_Query(SqlHandle, "UPDATE delivery_box SET received = 1 WHERE senderid = %u AND charid = %u AND box = 2 LIMIT 1;", PChar->id, senderID);
-
-                                if (ret != SQL_ERROR && Sql_AffectedRows(SqlHandle) == 1)
-                                {
-                                    PChar->UContainer->SetItem(slotID, nullptr);
-                                    PChar->pushPacket(new CDeliveryBoxPacket(action, boxtype, PItem, slotID, PChar->UContainer->GetItemsCount(), 1));
-                                    delete PItem;
-                                    commit = true;
-                                }
+                                PChar->UContainer->SetItem(slotID, nullptr);
+                                PChar->pushPacket(new CDeliveryBoxPacket(action, boxtype, PItem, slotID, PChar->UContainer->GetItemsCount(), 1));
+                                delete PItem;
+                                commit = true;
                             }
                         }
                     }
@@ -1949,6 +2005,7 @@ void SmallPacket0x04D(map_session_data_t* session, CCharEntity* PChar, CBasicPac
         {
             bool isAutoCommitOn = Sql_GetAutoCommit(SqlHandle);
             bool commit = false;
+            bool invErr = false;
 
             CItem* PItem = PChar->UContainer->GetItem(slotID);
 
@@ -1964,7 +2021,7 @@ void SmallPacket0x04D(map_session_data_t* session, CCharEntity* PChar, CBasicPac
 
             if (Sql_SetAutoCommit(SqlHandle, false) && Sql_TransactionStart(SqlHandle))
             {
-                int32 ret;
+                int32 ret = SQL_ERROR;
                 if (boxtype == 0x01)
                 {
                     ret = Sql_Query(SqlHandle, "DELETE FROM delivery_box WHERE charid = %u AND slot = %u AND box = %u LIMIT 1", PChar->id, slotID, boxtype);
@@ -1980,13 +2037,16 @@ void SmallPacket0x04D(map_session_data_t* session, CCharEntity* PChar, CBasicPac
                     {
                         commit = true;
                     }
+                    else
+                        invErr = true;
                 }
 
                 if (!commit || !Sql_TransactionCommit(SqlHandle))
                 {
                     Sql_TransactionRollback(SqlHandle);
                     PChar->pushPacket(new CDeliveryBoxPacket(action, boxtype, PItem, slotID, PChar->UContainer->GetItemsCount(), 0xBA));
-                    ShowError("Could not finalize receive transaction. PlayerID: %d Action: 0x0A", PChar->id);
+                    if (!invErr)  //only display error in log if there's a database problem, not if inv is full or rare item conflict
+                        ShowError("Could not finalize receive transaction. PlayerID: %d Action: 0x0A", PChar->id);
                 }
                 else
                 {
@@ -2077,14 +2137,14 @@ void SmallPacket0x04D(map_session_data_t* session, CCharEntity* PChar, CBasicPac
 
 void SmallPacket0x04E(map_session_data_t* session, CCharEntity* PChar, CBasicPacket data)
 {
-    uint8  action = RBUFB(data, (0x04));
-    uint8  slotid = RBUFB(data, (0x05));
-    uint32 price = RBUFL(data, (0x08));
-    uint8  slot = RBUFB(data, (0x0C));
-    uint16 itemid = RBUFW(data, (0x0E));
-    uint8  quantity = RBUFB(data, (0x10));
+    uint8  action = data.ref<uint8>(0x04);
+    uint8  slotid = data.ref<uint8>(0x05);
+    uint32 price = data.ref<uint32>(0x08);
+    uint8  slot = data.ref<uint8>(0x0C);
+    uint16 itemid = data.ref<uint16>(0x0E);
+    uint8  quantity = data.ref<uint8>(0x10);
 
-    ShowDebug(CL_CYAN"AH Action (%02hx)\n" CL_RESET, RBUFB(data, (0x04)));
+    ShowDebug(CL_CYAN"AH Action (%02hx)\n" CL_RESET, data.ref<uint8>(0x04));
 
     // 0x04 - Selling Items
     // 0x05 - Open List Of Sales / Wait
@@ -2121,7 +2181,7 @@ void SmallPacket0x04E(map_session_data_t* session, CCharEntity* PChar, CBasicPac
             PChar->pushPacket(new CAuctionHousePacket(action));
 
             // A single SQL query for the player's AH history which is stored in a Char Entity struct + vector.
-            const int8* Query = "SELECT itemid, price, stack FROM auction_house WHERE seller = %u and sale=0 LIMIT 7;";
+            const char* Query = "SELECT itemid, price, stack FROM auction_house WHERE seller = %u and sale=0 ORDER BY id ASC LIMIT 7;";
 
             int32 ret = Sql_Query(SqlHandle, Query, PChar->id);
 
@@ -2147,11 +2207,11 @@ void SmallPacket0x04E(map_session_data_t* session, CCharEntity* PChar, CBasicPac
     }
     case 0x0A:
     {
-        uint8 totalItemsOnAh = PChar->m_ah_history.size();
+        auto totalItemsOnAh = PChar->m_ah_history.size();
 
-        for (int8 slot = 0; slot < totalItemsOnAh; slot++)
+        for (size_t slot = 0; slot < totalItemsOnAh; slot++)
         {
-            PChar->pushPacket(new CAuctionHousePacket(0x0C, slot, PChar));
+            PChar->pushPacket(new CAuctionHousePacket(0x0C, (uint8)slot, PChar));
         }
     }
     break;
@@ -2172,12 +2232,14 @@ void SmallPacket0x04E(map_session_data_t* session, CCharEntity* PChar, CBasicPac
                     PChar->pushPacket(new CAuctionHousePacket(action, 197, 0, 0)); // Failed to place up
                     return;
                 }
-                auctionFee = map_config.ah_base_fee_stacks+(price*map_config.ah_tax_rate_stacks/100);
+                auctionFee = (uint32)(map_config.ah_base_fee_stacks + (price * map_config.ah_tax_rate_stacks / 100));
             }
             else
             {
-                auctionFee = map_config.ah_base_fee_single+(price*map_config.ah_tax_rate_single/100);
+                auctionFee = (uint32)(map_config.ah_base_fee_single + (price * map_config.ah_tax_rate_single / 100));
             }
+
+            auctionFee = std::clamp<uint32>(auctionFee, 0, map_config.ah_max_fee);
 
             if (PChar->getStorage(LOC_INVENTORY)->GetItem(0)->getQuantity() < auctionFee)
             {
@@ -2193,7 +2255,7 @@ void SmallPacket0x04E(map_session_data_t* session, CCharEntity* PChar, CBasicPac
                 return;
             }
 
-            const int8* fmtQuery = "INSERT INTO auction_house(itemid, stack, seller, seller_name, date, price) VALUES(%u,%u,%u,'%s',%u,%u)";
+            const char* fmtQuery = "INSERT INTO auction_house(itemid, stack, seller, seller_name, date, price) VALUES(%u,%u,%u,'%s',%u,%u)";
 
             if (Sql_Query(SqlHandle,
                 fmtQuery,
@@ -2209,16 +2271,16 @@ void SmallPacket0x04E(map_session_data_t* session, CCharEntity* PChar, CBasicPac
                 return;
             }
             charutils::UpdateItem(PChar, LOC_INVENTORY, slot, -(int32)(quantity != 0 ? 1 : PItem->getStackSize()));
-            charutils::UpdateItem(PChar, LOC_INVENTORY, 0, -auctionFee); // Deduct AH fee
+            charutils::UpdateItem(PChar, LOC_INVENTORY, 0, -(int32)auctionFee); // Deduct AH fee
 
             PChar->pushPacket(new CAuctionHousePacket(action, 1, 0, 0)); // Merchandise put up on auction msg
-            PChar->pushPacket(new CAuctionHousePacket(0x0C, PChar->m_ah_history.size(), PChar)); // Inform history of slot
+            PChar->pushPacket(new CAuctionHousePacket(0x0C, (uint8)PChar->m_ah_history.size(), PChar)); // Inform history of slot
         }
     }
     break;
     case 0x0E:
     {
-        itemid = RBUFW(data, (0x0C));
+        itemid = data.ref<uint16>(0x0C);
 
         if (PChar->getStorage(LOC_INVENTORY)->GetFreeSlotsCount() == 0)
         {
@@ -2247,7 +2309,7 @@ void SmallPacket0x04E(map_session_data_t* session, CCharEntity* PChar, CBasicPac
                     gil->isType(ITEM_CURRENCY) &&
                     gil->getQuantity() >= price)
                 {
-                    const int8* fmtQuery = "UPDATE auction_house SET buyer_name = '%s', sale = %u, sell_date = %u WHERE itemid = %u AND buyer_name IS NULL AND stack = %u AND price <= %u ORDER BY price LIMIT 1";
+                    const char* fmtQuery = "UPDATE auction_house SET buyer_name = '%s', sale = %u, sell_date = %u WHERE itemid = %u AND buyer_name IS NULL AND stack = %u AND price <= %u ORDER BY price LIMIT 1";
 
                     if (Sql_Query(SqlHandle,
                         fmtQuery,
@@ -2278,54 +2340,41 @@ void SmallPacket0x04E(map_session_data_t* session, CCharEntity* PChar, CBasicPac
     break;
     case 0x0C: // Removing item from AH
     {
-        // Check user has invent space
-        if (PChar->getStorage(LOC_INVENTORY)->GetFreeSlotsCount() == 0)
+        if (slotid < PChar->m_ah_history.size())
         {
-            PChar->pushPacket(new CAuctionHousePacket(action, 0xE5, PChar, slotid, true)); //invent full, unable to remove msg
-            return;
-        }
-        else
-        {
-            const int8* delQuery = "DELETE FROM auction_house WHERE seller = %u AND id = %u AND sale = 0 LIMIT 1;";
+            bool isAutoCommitOn = Sql_GetAutoCommit(SqlHandle);
+            AuctionHistory_t canceledItem = PChar->m_ah_history[slotid];
 
-            const int8* fmtQuery = "SELECT itemid, stack, id FROM auction_house WHERE seller = %u and sale=0;";
-            int32 ret = Sql_Query(SqlHandle, fmtQuery, PChar->id);
-            if (ret != SQL_ERROR && Sql_NumRows(SqlHandle) != 0)
+            if (Sql_SetAutoCommit(SqlHandle, false) && Sql_TransactionStart(SqlHandle))
             {
-                uint8 count = 0;
-                while (Sql_NextRow(SqlHandle) == SQL_SUCCESS)
+                const char* fmtQuery = "DELETE FROM auction_house WHERE seller = %u AND itemid = %u AND stack = %u AND price = %u AND sale = 0 LIMIT 1;";
+                int32 ret = Sql_Query(SqlHandle, fmtQuery, PChar->id, canceledItem.itemid, canceledItem.stack, canceledItem.price);
+                if (ret != SQL_ERROR && Sql_AffectedRows(SqlHandle))
                 {
-                    if (count == slotid){
-                        uint16 delitemid = (uint16)Sql_GetUIntData(SqlHandle, 0);
-                        uint16 delitemstack = (uint16)Sql_GetUIntData(SqlHandle, 1);
-                        uint32 ahid = (uint32)Sql_GetUIntData(SqlHandle, 2);
-                        int32 delret = Sql_Query(SqlHandle, delQuery, PChar->id, ahid);
-                        if (delret != SQL_ERROR){
-                            //add the item back to the users invent
-                            CItem* PDelItem = itemutils::GetItemPointer(delitemid);
-                            if (PDelItem != nullptr){
-                                uint8 SlotID = charutils::AddItem(PChar, LOC_INVENTORY, delitemid,
-                                    (delitemstack != 0 ? PDelItem->getStackSize() : 1));
+                    CItem* PDelItem = itemutils::GetItemPointer(canceledItem.itemid);
+                    if (PDelItem)
+                    {
+                        uint8 SlotID = charutils::AddItem(PChar, LOC_INVENTORY, canceledItem.itemid, (canceledItem.stack != 0 ? PDelItem->getStackSize() : 1), true);
 
-                                if (SlotID != ERROR_SLOTID)
-                                {
-                                    PChar->pushPacket(new CAuctionHousePacket(action, 0, PChar, slotid, false));
-                                    PChar->pushPacket(new CInventoryFinishPacket());
-                                }
-                                else {
-                                    ShowError("Failed to return item id %u stack %u to char... \n", delitemid, delitemstack);
-                                }
-                                return;
-                            }
+                        if (SlotID != ERROR_SLOTID)
+                        {
+                            Sql_TransactionCommit(SqlHandle);
+                            PChar->pushPacket(new CAuctionHousePacket(action, 0, PChar, slotid, false));
+                            PChar->pushPacket(new CInventoryFinishPacket());
+                            Sql_SetAutoCommit(SqlHandle, isAutoCommitOn);
+                            return;
                         }
-                        break;
                     }
-                    count++;
                 }
+                else
+                    ShowError("Failed to return item id %u stack %u to char... \n", canceledItem.itemid, canceledItem.stack);
+
+                Sql_TransactionRollback(SqlHandle);
+                Sql_SetAutoCommit(SqlHandle, isAutoCommitOn);
             }
-            // Let client know something went wrong
-            PChar->pushPacket(new CAuctionHousePacket(action, 0xE5, PChar, slotid, true)); // Inventory full, unable to remove msg
         }
+        // Let client know something went wrong
+        PChar->pushPacket(new CAuctionHousePacket(action, 0xE5, PChar, slotid, true)); // Inventory full, unable to remove msg
     }
     break;
     case 0x0D:
@@ -2348,9 +2397,9 @@ void SmallPacket0x050(map_session_data_t* session, CCharEntity* PChar, CBasicPac
     if (PChar->status != STATUS_NORMAL)
         return;
 
-    uint8 slotID = RBUFB(data, (0x04));        // inventory slot
-    uint8 equipSlotID = RBUFB(data, (0x05));        // charequip slot
-    uint8 containerID = RBUFB(data, (0x06));     // container id
+    uint8 slotID = data.ref<uint8>(0x04);        // inventory slot
+    uint8 equipSlotID = data.ref<uint8>(0x05);        // charequip slot
+    uint8 containerID = data.ref<uint8>(0x06);     // container id
 
     if (containerID != LOC_INVENTORY && containerID != LOC_WARDROBE && containerID != LOC_WARDROBE2 && containerID != LOC_WARDROBE3 && containerID != LOC_WARDROBE4)
         return;
@@ -2373,11 +2422,11 @@ void SmallPacket0x051(map_session_data_t* session, CCharEntity* PChar, CBasicPac
     if (PChar->status != STATUS_NORMAL)
         return;
 
-    for (uint8 i = 0; i < RBUFB(data, (0x04)); i++)
+    for (uint8 i = 0; i < data.ref<uint8>(0x04); i++)
     {
-        uint8 slotID = RBUFB(data, (0x08 + (0x04 * i)));        // inventory slot
-        uint8 equipSlotID = RBUFB(data, (0x09 + (0x04 * i)));        // charequip slot
-        uint8 containerID = RBUFB(data, (0x0A + (0x04 * i)));     // container id
+        uint8 slotID = data.ref<uint8>(0x08 + (0x04 * i));        // inventory slot
+        uint8 equipSlotID = data.ref<uint8>(0x09 + (0x04 * i));        // charequip slot
+        uint8 containerID = data.ref<uint8>(0x0A + (0x04 * i));     // container id
         if (containerID == LOC_INVENTORY || containerID == LOC_WARDROBE || containerID == LOC_WARDROBE2 || containerID == LOC_WARDROBE3 || containerID == LOC_WARDROBE4)
         {
             charutils::EquipItem(PChar, slotID, equipSlotID, containerID);
@@ -2417,8 +2466,8 @@ void SmallPacket0x052(map_session_data_t* session, CCharEntity* PChar, CBasicPac
 ************************************************************************/
 void SmallPacket0x053(map_session_data_t* session, CCharEntity* PChar, CBasicPacket data)
 {
-    uint8 count = RBUFB(data, (0x04));
-    uint8 type = RBUFB(data, (0x05));
+    uint8 count = data.ref<uint8>(0x04);
+    uint8 type = data.ref<uint8>(0x05);
 
     if (type == 0 && PChar->getStyleLocked())
     {
@@ -2439,10 +2488,10 @@ void SmallPacket0x053(map_session_data_t* session, CCharEntity* PChar, CBasicPac
         charutils::SetStyleLock(PChar, true);
 
         for (int i = 0x08; i < 0x08 + (0x08 * count); i += 0x08) {
-            uint8 slotId = RBUFB(data, i);
-            uint8 equipSlotId = RBUFB(data, i + 0x01);
-            uint8 locationId = RBUFB(data, i + 0x02);
-            uint16 itemId = RBUFW(data, i + 0x04);
+            // uint8 slotId = data.ref<uint8>(i);
+            uint8 equipSlotId = data.ref<uint8>(i + 0x01);
+            // uint8 locationId = data.ref<uint8>(i + 0x02);
+            uint16 itemId = data.ref<uint16>(i + 0x04);
 
             auto PItem = itemutils::GetItem(itemId);
             if (PItem == nullptr || !(PItem->isType(ITEM_WEAPON) || PItem->isType(ITEM_ARMOR)))
@@ -2493,8 +2542,8 @@ void SmallPacket0x053(map_session_data_t* session, CCharEntity* PChar, CBasicPac
 
 void SmallPacket0x058(map_session_data_t* session, CCharEntity* PChar, CBasicPacket data)
 {
-    uint16 skillID = RBUFW(data, (0x04));
-    uint16 skillLevel = RBUFW(data, (0x06));
+    // uint16 skillID = data.ref<uint16>(0x04);
+    // uint16 skillLevel = data.ref<uint16>(0x06);
     //PChar->pushPacket(new CSynthSuggestionPacket(recipeID));
 }
 
@@ -2539,14 +2588,14 @@ void SmallPacket0x05A(map_session_data_t* session, CCharEntity* PChar, CBasicPac
 
 void SmallPacket0x05B(map_session_data_t* session, CCharEntity* PChar, CBasicPacket data)
 {
-    uint16 EventID = RBUFW(data, (0x12));
-    uint32 Result = RBUFL(data, (0x08));
+    uint16 EventID = data.ref<uint16>(0x12);
+    uint32 Result = data.ref<uint32>(0x08);
 
     if (PChar->m_event.EventID == EventID)
     {
         if (PChar->m_event.Option != 0) Result = PChar->m_event.Option;
 
-        if (RBUFB(data, (0x0E)) != 0)
+        if (data.ref<uint8>(0x0E) != 0)
         {
             luautils::OnEventUpdate(PChar, EventID, Result);
         }
@@ -2573,16 +2622,16 @@ void SmallPacket0x05B(map_session_data_t* session, CCharEntity* PChar, CBasicPac
 
 void SmallPacket0x05C(map_session_data_t* session, CCharEntity* PChar, CBasicPacket data)
 {
-    uint16 EventID = RBUFW(data, (0x1A));
+    uint16 EventID = data.ref<uint16>(0x1A);
 
     if (PChar->m_event.EventID == EventID)
     {
-        PChar->loc.p.x = RBUFF(data, (0x04));
-        PChar->loc.p.y = RBUFF(data, (0x08));
-        PChar->loc.p.z = RBUFF(data, (0x0C));
-        PChar->loc.p.rotation = RBUFB(data, (0x1F));
+        PChar->loc.p.x = data.ref<float>(0x04);
+        PChar->loc.p.y = data.ref<float>(0x08);
+        PChar->loc.p.z = data.ref<float>(0x0C);
+        PChar->loc.p.rotation = data.ref<uint8>(0x1F);
 
-        if (RBUFB(data, (0x1E)) != 0)
+        if (data.ref<uint8>(0x1E) != 0)
         {
             luautils::OnEventUpdate(PChar, EventID, 0);
         }
@@ -2631,40 +2680,14 @@ void SmallPacket0x05E(map_session_data_t* session, CCharEntity* PChar, CBasicPac
     // handle pets on zone
     if (PChar->PPet != nullptr)
     {
-        CPetEntity* PPet = (CPetEntity*)PChar->PPet;
-
-        if (PPet->objtype == TYPE_MOB)
-        {
-            // uncharm a charmed mob
-            petutils::DespawnPet(PChar);
-        }
-        else if (PPet->objtype == TYPE_PET)
-        {
-            switch (PPet->getPetType())
-            {
-            case PETTYPE_JUG_PET:
-            case PETTYPE_AUTOMATON:
-            case PETTYPE_WYVERN:
-                PChar->petZoningInfo.petHP = PPet->health.hp;
-                PChar->petZoningInfo.petTP = PPet->health.tp;
-                PChar->petZoningInfo.respawnPet = true;
-                PChar->petZoningInfo.petType = PPet->getPetType();
-                petutils::DespawnPet(PChar);
-                break;
-
-            case PETTYPE_AVATAR:
-                petutils::DespawnPet(PChar);
-
-            default:
-                break;
-            }
-        }
+        PChar->setPetZoningInfo();
+        petutils::DespawnPet(PChar);
     }
 
-    uint32 zoneLineID = RBUFL(data, (0x04));
+    uint32 zoneLineID = data.ref<uint32>(0x04);
     //TODO: verify packet in adoulin expansion
-    uint8  town = RBUFB(data, (0x16));
-    uint8  zone = RBUFB(data, (0x17));
+    uint8  town = data.ref<uint8>(0x16);
+    uint8  zone = data.ref<uint8>(0x17);
 
     if (PChar->status == STATUS_NORMAL)
     {
@@ -2674,7 +2697,7 @@ void SmallPacket0x05E(map_session_data_t* session, CCharEntity* PChar, CBasicPac
         // Exiting Mog House..
         if (zoneLineID == 1903324538)
         {
-            uint16 prevzone = PChar->loc.prevzone;
+            uint16 prevzone = PChar->getZone();
 
             // If zero, return to previous zone.. otherwise, determine the zone..
             if (zone != 0)
@@ -2695,7 +2718,7 @@ void SmallPacket0x05E(map_session_data_t* session, CCharEntity* PChar, CBasicPac
                 }
                 else if (zone == 125)
                 {
-                    prevzone = PChar->loc.prevzone;
+                    prevzone = PChar->getZone();
                 }
             }
             PChar->m_moghouseID = 0;
@@ -2735,6 +2758,13 @@ void SmallPacket0x05E(map_session_data_t* session, CCharEntity* PChar, CBasicPac
                     PChar->status = STATUS_NORMAL;
                     return;
                 }
+                else if (PZoneLine->m_toZone == 0)
+                {
+                    //TODO: for entering another persons mog house, it must be set here
+                    PChar->m_moghouseID = PChar->id;
+                    PChar->loc.p = PZoneLine->m_toPos;
+                    PChar->loc.destination = PChar->getZone();
+                }
                 else
                 {
                     PChar->loc.destination = PZoneLine->m_toZone;
@@ -2763,7 +2793,7 @@ void SmallPacket0x05E(map_session_data_t* session, CCharEntity* PChar, CBasicPac
 
 void SmallPacket0x060(map_session_data_t* session, CCharEntity* PChar, CBasicPacket data)
 {
-    uint32 charid = RBUFL(data, 0x04);
+    // uint32 charid = data.ref<uint32>(0x04);
     int8* string = data[12];
     luautils::OnEventUpdate(PChar, string);
 
@@ -2813,7 +2843,7 @@ void SmallPacket0x063(map_session_data_t* session, CCharEntity* PChar, CBasicPac
 
 void SmallPacket0x064(map_session_data_t* session, CCharEntity* PChar, CBasicPacket data)
 {
-    uint8 KeyTable = RBUFB(data, (0x4A));
+    uint8 KeyTable = data.ref<uint8>(0x4A);
     memcpy(&PChar->keys.tables[KeyTable].seenList, data[0x08], 0x40);
 
     charutils::SaveKeyItems(PChar);
@@ -2822,18 +2852,25 @@ void SmallPacket0x064(map_session_data_t* session, CCharEntity* PChar, CBasicPac
 
 /************************************************************************
 *                                                                       *
-*  Fishing (Action) [Old fishing method packet!]                        *
+*  Fishing (Action) [Old fishing method packet! Still used.]            *
 *                                                                       *
 ************************************************************************/
 
 void SmallPacket0x066(map_session_data_t* session, CCharEntity* PChar, CBasicPacket data)
 {
-    PrintPacket(data);
+    //PrintPacket(data);
 
-    uint16 stamina = RBUFW(data, (0x08));
-    uint8  action = RBUFB(data, (0x0E));
+    //uint32 charid = data.ref<uint32>(0x04);
+    uint16 stamina = data.ref<uint16>(0x08);
+    //uint16 ukn1 = data.ref<uint16>(0x0A); // Seems to always be zero with basic fishing, skill not high enough to test legendary fish.
+    //uint16 targetid = data.ref<uint16>(0x0C);
+    uint8  action = data.ref<uint8>(0x0E);
+    //uint8 ukn2 = data.ref<uint8>(0x0F);
+    uint32 special = data.ref<uint32>(0x10);
 
-    fishingutils::FishingAction(PChar, (FISHACTION)action, stamina);
+    if ((FISHACTION)action != FISHACTION_FINISH || PChar->animation == ANIMATION_FISHING_FISH)
+        fishingutils::FishingAction(PChar, (FISHACTION)action, stamina, special);
+
     return;
 }
 
@@ -2845,8 +2882,8 @@ void SmallPacket0x066(map_session_data_t* session, CCharEntity* PChar, CBasicPac
 
 void SmallPacket0x06E(map_session_data_t* session, CCharEntity* PChar, CBasicPacket data)
 {
-    uint32 charid = RBUFL(data, 0x04);
-    uint16 targid = RBUFW(data, 0x08);
+    uint32 charid = data.ref<uint32>(0x04);
+    uint16 targid = data.ref<uint16>(0x08);
     // cannot invite yourself
     if (PChar->id == charid)
         return;
@@ -2858,7 +2895,7 @@ void SmallPacket0x06E(map_session_data_t* session, CCharEntity* PChar, CBasicPac
         return;
     }
 
-    switch (RBUFB(data, (0x0A)))
+    switch (data.ref<uint8>(0x0A))
     {
     case 0: // party - must by party leader or solo
         if (PChar->PParty == nullptr || PChar->PParty->GetLeader() == PChar)
@@ -2871,7 +2908,13 @@ void SmallPacket0x06E(map_session_data_t* session, CCharEntity* PChar, CBasicPac
             CCharEntity* PInvitee = nullptr;
             if (targid != 0)
             {
-                PInvitee = zoneutils::GetCharFromWorld(charid, targid);
+                CBaseEntity* PEntity = PChar->GetEntity(targid, TYPE_PC);
+                if (PEntity && PEntity->id == charid)
+                    PInvitee = (CCharEntity*)PEntity;
+            }
+            else
+            {
+                PInvitee = zoneutils::GetChar(charid);
             }
             if (PInvitee)
             {
@@ -2881,6 +2924,18 @@ void SmallPacket0x06E(map_session_data_t* session, CCharEntity* PChar, CBasicPac
                 {
                     ShowDebug(CL_CYAN"%s is dead, in jail, has a pending invite, or is already in a party\n" CL_RESET, PInvitee->GetName());
                     PChar->pushPacket(new CMessageStandardPacket(PChar, 0, 0, 23));
+                    break;
+                }
+                // check /blockaid
+                if (PInvitee->getBlockingAid())
+                {
+                    ShowDebug(CL_CYAN"%s is blocking party invites\n" CL_RESET, PInvitee->GetName());
+                    // Target is blocking assistance
+                    PChar->pushPacket(new CMessageSystemPacket(0, 0, 225));
+                    // Interaction was blocked
+                    PInvitee->pushPacket(new CMessageSystemPacket(0, 0, 226));
+                    // You cannot invite that person at this time.
+                    PChar->pushPacket(new CMessageSystemPacket(0, 0, 23));
                     break;
                 }
                 if (PInvitee->StatusEffectContainer->HasStatusEffect(EFFECT_LEVEL_SYNC))
@@ -2902,10 +2957,10 @@ void SmallPacket0x06E(map_session_data_t* session, CCharEntity* PChar, CBasicPac
                 ShowDebug(CL_CYAN"Building invite packet to send to lobby server from %s to (%d)\n" CL_RESET, PChar->GetName(), charid);
                 //on another server (hopefully)
                 uint8 packetData[12] {};
-                WBUFL(packetData, 0) = charid;
-                WBUFW(packetData, 4) = targid;
-                WBUFL(packetData, 6) = PChar->id;
-                WBUFW(packetData, 10) = PChar->targid;
+                ref<uint32>(packetData, 0) = charid;
+                ref<uint16>(packetData, 4) = targid;
+                ref<uint32>(packetData, 6) = PChar->id;
+                ref<uint16>(packetData, 10) = PChar->targid;
                 message::send(MSG_PT_INVITE, packetData, sizeof packetData, new CPartyInvitePacket(charid, targid, PChar, INVITE_PARTY));
 
                 ShowDebug(CL_CYAN"Sent invite packet to lobby server from %s to (%d)\n" CL_RESET, PChar->GetName(), charid);
@@ -2926,11 +2981,29 @@ void SmallPacket0x06E(map_session_data_t* session, CCharEntity* PChar, CBasicPac
             CCharEntity* PInvitee = nullptr;
             if (targid != 0)
             {
-                PInvitee = zoneutils::GetCharFromWorld(charid, targid);
+                CBaseEntity* PEntity = PChar->GetEntity(targid, TYPE_PC);
+                if (PEntity && PEntity->id == charid)
+                    PInvitee = (CCharEntity*)PEntity;
+            }
+            else
+            {
+                PInvitee = zoneutils::GetChar(charid);
             }
             if (PInvitee)
             {
-                ShowDebug(CL_CYAN"%s sent party invite to %s\n" CL_RESET, PChar->GetName(), PInvitee->GetName());
+                ShowDebug(CL_CYAN"%s sent alliance invite to %s\n" CL_RESET, PChar->GetName(), PInvitee->GetName());
+                // check /blockaid
+                if (PInvitee->getBlockingAid())
+                {
+                    ShowDebug(CL_CYAN"%s is blocking alliance invites\n" CL_RESET, PInvitee->GetName());
+                    // Target is blocking assistance
+                    PChar->pushPacket(new CMessageSystemPacket(0, 0, 225));
+                    // Interaction was blocked
+                    PInvitee->pushPacket(new CMessageSystemPacket(0, 0, 226));
+                    // You cannot invite that person at this time.
+                    PChar->pushPacket(new CMessageSystemPacket(0, 0, 23));
+                    break;
+                }
                 //make sure intvitee isn't dead or in jail, they are an unallied party leader and don't already have an invite pending
                 if (PInvitee->isDead() || jailutils::InPrison(PInvitee) || PInvitee->InvitePending.id != 0 ||
                     PInvitee->PParty == nullptr || PInvitee->PParty->GetLeader() != PInvitee || PInvitee->PParty->m_PAlliance)
@@ -2956,10 +3029,10 @@ void SmallPacket0x06E(map_session_data_t* session, CCharEntity* PChar, CBasicPac
                 ShowDebug(CL_CYAN"(Alliance)Building invite packet to send to lobby server from %s to (%d)\n" CL_RESET, PChar->GetName(), charid);
                 //on another server (hopefully)
                 uint8 packetData[12] {};
-                WBUFL(packetData, 0) = charid;
-                WBUFW(packetData, 4) = targid;
-                WBUFL(packetData, 6) = PChar->id;
-                WBUFW(packetData, 10) = PChar->targid;
+                ref<uint32>(packetData, 0) = charid;
+                ref<uint16>(packetData, 4) = targid;
+                ref<uint32>(packetData, 6) = PChar->id;
+                ref<uint16>(packetData, 10) = PChar->targid;
                 message::send(MSG_PT_INVITE, packetData, sizeof packetData, new CPartyInvitePacket(charid, targid, PChar, INVITE_ALLIANCE));
 
                 ShowDebug(CL_CYAN"(Alliance)Sent invite packet to lobby server from %s to (%d)\n" CL_RESET, PChar->GetName(), charid);
@@ -2968,7 +3041,7 @@ void SmallPacket0x06E(map_session_data_t* session, CCharEntity* PChar, CBasicPac
         break;
 
     default:
-        ShowError(CL_RED"SmallPacket0x06E : unknown byte <%.2X>\n" CL_RESET, RBUFB(data, (0x0A)));
+        ShowError(CL_RED"SmallPacket0x06E : unknown byte <%.2X>\n" CL_RESET, data.ref<uint8>(0x0A));
         break;
     }
     return;
@@ -2983,7 +3056,7 @@ void SmallPacket0x06E(map_session_data_t* session, CCharEntity* PChar, CBasicPac
 void SmallPacket0x06F(map_session_data_t* session, CCharEntity* PChar, CBasicPacket data)
 {
     if (PChar->PParty)
-        switch (RBUFB(data, (0x04)))
+        switch (data.ref<uint8>(0x04))
     {
         case 0: // party - anyone may remove themself from party regardless of leadership or alliance
             if (PChar->PParty->m_PAlliance && PChar->PParty->members.size() == 1) // single member alliance parties must be removed from alliance before disband
@@ -3027,7 +3100,7 @@ void SmallPacket0x06F(map_session_data_t* session, CCharEntity* PChar, CBasicPac
             break;
 
         default:
-            ShowError(CL_RED"SmallPacket0x06F : unknown byte <%.2X>\n" CL_RESET, RBUFB(data, (0x04)));
+            ShowError(CL_RED"SmallPacket0x06F : unknown byte <%.2X>\n" CL_RESET, data.ref<uint8>(0x04));
             break;
     }
     return;
@@ -3042,7 +3115,7 @@ void SmallPacket0x06F(map_session_data_t* session, CCharEntity* PChar, CBasicPac
 void SmallPacket0x070(map_session_data_t* session, CCharEntity* PChar, CBasicPacket data)
 {
     if (PChar->PParty && PChar->PParty->GetLeader() == PChar)
-        switch (RBUFB(data, (0x04)))
+        switch (data.ref<uint8>(0x04))
     {
         case 0: // party - party leader may disband party if not an alliance member
             if (PChar->PParty->m_PAlliance == nullptr)
@@ -3063,7 +3136,7 @@ void SmallPacket0x070(map_session_data_t* session, CCharEntity* PChar, CBasicPac
             break;
 
         default:
-            ShowError(CL_RED"SmallPacket0x070 : unknown byte <%.2X>\n" CL_RESET, RBUFB(data, (0x04)));
+            ShowError(CL_RED"SmallPacket0x070 : unknown byte <%.2X>\n" CL_RESET, data.ref<uint8>(0x04));
             break;
     }
     return;
@@ -3077,10 +3150,10 @@ void SmallPacket0x070(map_session_data_t* session, CCharEntity* PChar, CBasicPac
 
 void SmallPacket0x071(map_session_data_t* session, CCharEntity* PChar, CBasicPacket data)
 {
-    switch (RBUFB(data, (0x0A)))
+    switch (data.ref<uint8>(0x0A))
     {
     case 0: // party - party leader may remove member of his own party
-        if (PChar->PParty)
+        if (PChar->PParty && PChar->PParty->GetLeader() == PChar)
         {
             CCharEntity* PVictim = (CCharEntity*)(PChar->PParty->GetMemberByName(data[0x0C]));
             if (PVictim)
@@ -3104,11 +3177,27 @@ void SmallPacket0x071(map_session_data_t* session, CCharEntity* PChar, CBasicPac
                         }
                     }
                 }
-                else if (PChar->PParty->GetLeader() != PChar) // not leader, cannot kick others
-                    break;
 
                 PChar->PParty->RemoveMember(PVictim);
                 ShowDebug(CL_CYAN"%s has removed %s from party\n" CL_RESET, PChar->GetName(), PVictim->GetName());
+            }
+            else
+            {
+                char victimName[31]{};
+                Sql_EscapeStringLen(SqlHandle, victimName, (const char*)data[0x0C], std::min<size_t>(strlen((const char*)data[0x0C]), 15));
+                int32 ret = Sql_Query(SqlHandle, "SELECT charid FROM chars WHERE charname = '%s';", victimName);
+                if (ret != SQL_ERROR && Sql_NumRows(SqlHandle) == 1 && Sql_NextRow(SqlHandle) == SQL_SUCCESS)
+                {
+                    uint32 id = Sql_GetUIntData(SqlHandle, 0);
+                    if (Sql_Query(SqlHandle, "DELETE FROM accounts_parties WHERE partyid = %u AND charid = %u;", PChar->id, id) == SQL_SUCCESS && Sql_AffectedRows(SqlHandle))
+                    {
+                        ShowDebug(CL_CYAN"%s has removed %s from party\n" CL_RESET, PChar->GetName(), data[0x0C]);
+                        uint8 data[8]{};
+                        ref<uint32>(data, 0) = PChar->PParty->GetPartyID();
+                        ref<uint32>(data, 4) = id;
+                        message::send(MSG_PT_RELOAD, data, sizeof data, nullptr);
+                    }
+                }
             }
         }
         break;
@@ -3119,10 +3208,10 @@ void SmallPacket0x071(map_session_data_t* session, CCharEntity* PChar, CBasicPac
         if (PChar->PLinkshell1 && PItemLinkshell)
         {
             int8 packetData[29] {};
-            WBUFL(packetData, 0) = PChar->id;
+            ref<uint32>(packetData, 0) = PChar->id;
             memcpy(packetData + 0x04, data[0x0C], 20);
-            WBUFL(packetData, 24) = PChar->PLinkshell1->getID();
-            WBUFB(packetData, 28) = PItemLinkshell->GetLSType();
+            ref<uint32>(packetData, 24) = PChar->PLinkshell1->getID();
+            ref<uint8>(packetData, 28) = PItemLinkshell->GetLSType();
             message::send(MSG_LINKSHELL_REMOVE, packetData, sizeof packetData, nullptr);
         }
     }
@@ -3134,10 +3223,10 @@ void SmallPacket0x071(map_session_data_t* session, CCharEntity* PChar, CBasicPac
         if (PChar->PLinkshell2 && PItemLinkshell)
         {
             int8 packetData[29] {};
-            WBUFL(packetData, 0) = PChar->id;
+            ref<uint32>(packetData, 0) = PChar->id;
             memcpy(packetData + 0x04, data[0x0C], 20);
-            WBUFL(packetData, 24) = PChar->PLinkshell2->getID();
-            WBUFB(packetData, 28) = PItemLinkshell->GetLSType();
+            ref<uint32>(packetData, 24) = PChar->PLinkshell2->getID();
+            ref<uint8>(packetData, 28) = PItemLinkshell->GetLSType();
             message::send(MSG_LINKSHELL_REMOVE, packetData, sizeof packetData, nullptr);
         }
     }
@@ -3150,9 +3239,9 @@ void SmallPacket0x071(map_session_data_t* session, CCharEntity* PChar, CBasicPac
             for (uint8 i = 0; i < PChar->PParty->m_PAlliance->partyList.size(); ++i)
             {
                 PVictim = (CCharEntity*)(PChar->PParty->m_PAlliance->partyList[i]->GetMemberByName(data[0x0C]));
-                ShowDebug(CL_CYAN"%s is trying to kick %s party from alliance\n" CL_RESET, PChar->GetName(), PVictim->GetName());
                 if (PVictim && PVictim->PParty && PVictim->PParty->m_PAlliance) // victim is in this party
                 {
+                    ShowDebug(CL_CYAN"%s is trying to kick %s party from alliance\n" CL_RESET, PChar->GetName(), PVictim->GetName());
                     //if using kick on yourself, or alliance leader using kick on another party leader - remove the party
                     if (PVictim == PChar || (PChar->PParty->m_PAlliance->getMainParty() == PChar->PParty && PVictim->PParty->GetLeader() == PVictim))
                     {
@@ -3171,11 +3260,34 @@ void SmallPacket0x071(map_session_data_t* session, CCharEntity* PChar, CBasicPac
                     break; // we're done, break the for
                 }
             }
+            if (!PVictim && PChar->PParty->m_PAlliance->getMainParty() == PChar->PParty)
+            {
+                char victimName[31]{};
+                Sql_EscapeStringLen(SqlHandle, victimName, (const char*)data[0x0C], std::min<size_t>(strlen((const char*)data[0x0C]), 15));
+                int32 ret = Sql_Query(SqlHandle, "SELECT charid FROM chars WHERE charname = '%s';", victimName);
+                if (ret != SQL_ERROR && Sql_NumRows(SqlHandle) == 1 && Sql_NextRow(SqlHandle) == SQL_SUCCESS)
+                {
+                    uint32 id = Sql_GetUIntData(SqlHandle, 0);
+                    ret = Sql_Query(SqlHandle, "SELECT partyid FROM accounts_parties WHERE charid = %u AND allianceid = %u AND partyflag & %d AND partyflag & %d", id, PChar->PParty->m_PAlliance->m_AllianceID, PARTY_LEADER, PARTY_SECOND | PARTY_THIRD);
+                    if (ret != SQL_ERROR && Sql_NumRows(SqlHandle) == 1 && Sql_NextRow(SqlHandle) == SQL_SUCCESS)
+                    {
+                        if (Sql_Query(SqlHandle, "UPDATE accounts_parties SET allianceid = 0, partyflag = partyflag & ~%d WHERE partyid = %u;", PARTY_SECOND | PARTY_THIRD, id) == SQL_SUCCESS && Sql_AffectedRows(SqlHandle))
+                        {
+                            ShowDebug(CL_CYAN"%s has removed %s party from alliance\n" CL_RESET, PChar->GetName(), data[0x0C]);
+                            uint8 data[8]{};
+                            ref<uint32>(data, 0) = PChar->PParty->GetPartyID();
+                            ref<uint32>(data, 4) = id;
+                            message::send(MSG_PT_RELOAD, data, sizeof data, nullptr);
+                        }
+
+                    }
+                }
+            }
         }
         break;
 
     default:
-        ShowError(CL_RED"SmallPacket0x071 : unknown byte <%.2X>\n" CL_RESET, RBUFB(data, (0x0A)));
+        ShowError(CL_RED"SmallPacket0x071 : unknown byte <%.2X>\n" CL_RESET, data.ref<uint8>(0x0A));
         break;
     }
     return;
@@ -3191,7 +3303,7 @@ void SmallPacket0x074(map_session_data_t* session, CCharEntity* PChar, CBasicPac
 {
     CCharEntity* PInviter = zoneutils::GetCharFromWorld(PChar->InvitePending.id, PChar->InvitePending.targid);
 
-    uint8 InviteAnswer = RBUFB(data, (0x04));
+    uint8 InviteAnswer = data.ref<uint8>(0x04);
 
     if (PInviter != nullptr)
     {
@@ -3212,10 +3324,10 @@ void SmallPacket0x074(map_session_data_t* session, CCharEntity* PChar, CBasicPac
             {
                 ShowDebug(CL_CYAN"%s invited %s to an alliance\n" CL_RESET, PInviter->GetName(), PChar->GetName());
                 //the inviter already has an alliance and wants to add another party - only add if they have room for another party
-                if (PInviter->PParty->m_PAlliance && PInviter->PParty->m_PAlliance->getMainParty() == PInviter->PParty)
+                if (PInviter->PParty->m_PAlliance)
                 {
-                    //break if alliance is full
-                    if (PInviter->PParty->m_PAlliance->partyCount() == 3)
+                    //break if alliance is full or the inviter is not the leader
+                    if (PInviter->PParty->m_PAlliance->partyCount() == 3 || PInviter->PParty->m_PAlliance->getMainParty() != PInviter->PParty)
                     {
                         ShowDebug(CL_CYAN"Alliance is full, invite to %s cancelled\n" CL_RESET, PChar->GetName());
                         PChar->pushPacket(new CMessageStandardPacket(PChar, 0, 0, 14));
@@ -3233,7 +3345,7 @@ void SmallPacket0x074(map_session_data_t* session, CCharEntity* PChar, CBasicPac
                 {
                     //party leaders have no alliance - create a new one!
                     ShowDebug(CL_CYAN"Creating new alliance\n" CL_RESET);
-                    CAlliance* PAlliance = new CAlliance(PInviter);
+                    PInviter->PParty->m_PAlliance = new CAlliance(PInviter);
                     PInviter->PParty->m_PAlliance->addParty(PChar->PParty);
                     PChar->InvitePending.clean();
                     ShowDebug(CL_CYAN"%s party added to %s alliance\n" CL_RESET, PChar->GetName(), PInviter->GetName());
@@ -3251,7 +3363,7 @@ void SmallPacket0x074(map_session_data_t* session, CCharEntity* PChar, CBasicPac
                 if (PInviter->PParty == nullptr)
                 {
                     ShowDebug(CL_CYAN"Creating new party\n" CL_RESET);
-                    CParty* PParty = new CParty(PInviter);
+                    PInviter->PParty = new CParty(PInviter);
                 }
                 if (PInviter->PParty->GetLeader() == PInviter)
                 {
@@ -3277,11 +3389,11 @@ void SmallPacket0x074(map_session_data_t* session, CCharEntity* PChar, CBasicPac
     {
         ShowDebug(CL_CYAN"(Party)Building invite packet to send to lobby server for %s\n" CL_RESET, PChar->GetName());
         uint8 packetData[13] {};
-        WBUFL(packetData, 0) = PChar->InvitePending.id;
-        WBUFW(packetData, 4) = PChar->InvitePending.targid;
-        WBUFL(packetData, 6) = PChar->id;
-        WBUFW(packetData, 10) = PChar->targid;
-        WBUFB(packetData, 12) = InviteAnswer;
+        ref<uint32>(packetData, 0) = PChar->InvitePending.id;
+        ref<uint16>(packetData, 4) = PChar->InvitePending.targid;
+        ref<uint32>(packetData, 6) = PChar->id;
+        ref<uint16>(packetData, 10) = PChar->targid;
+        ref<uint8>(packetData, 12) = InviteAnswer;
         PChar->InvitePending.clean();
         message::send(MSG_PT_INV_RES, packetData, sizeof packetData, nullptr);
         ShowDebug(CL_CYAN"(Party)Sent invite packet to send to lobby server for %s\n" CL_RESET, PChar->GetName());
@@ -3318,7 +3430,7 @@ void SmallPacket0x076(map_session_data_t* session, CCharEntity* PChar, CBasicPac
 
 void SmallPacket0x077(map_session_data_t* session, CCharEntity* PChar, CBasicPacket data)
 {
-    switch (RBUFB(data, (0x14)))
+    switch (data.ref<uint8>(0x14))
     {
     case 0: // party
     {
@@ -3326,7 +3438,7 @@ void SmallPacket0x077(map_session_data_t* session, CCharEntity* PChar, CBasicPac
             PChar->PParty->GetLeader() == PChar)
         {
             ShowDebug(CL_CYAN"(Party)Changing leader to %s\n" CL_RESET, data[0x04]);
-            PChar->PParty->AssignPartyRole(data[0x04], RBUFB(data, (0x15)));
+            PChar->PParty->AssignPartyRole(data[0x04], data.ref<uint8>(0x15));
         }
     }
     break;
@@ -3335,10 +3447,10 @@ void SmallPacket0x077(map_session_data_t* session, CCharEntity* PChar, CBasicPac
         if (PChar->PLinkshell1 != nullptr)
         {
             int8 packetData[29] {};
-            WBUFL(packetData, 0) = PChar->id;
+            ref<uint32>(packetData, 0) = PChar->id;
             memcpy(packetData + 0x04, data[0x04], 20);
-            WBUFL(packetData, 24) = PChar->PLinkshell1->getID();
-            WBUFB(packetData, 28) = RBUFB(data, 0x15);
+            ref<uint32>(packetData, 24) = PChar->PLinkshell1->getID();
+            ref<uint8>(packetData, 28) = data.ref<uint8>(0x15);
             message::send(MSG_LINKSHELL_RANK_CHANGE, packetData, sizeof packetData, nullptr);
         }
     }
@@ -3348,10 +3460,10 @@ void SmallPacket0x077(map_session_data_t* session, CCharEntity* PChar, CBasicPac
         if (PChar->PLinkshell2 != nullptr)
         {
             int8 packetData[29] {};
-            WBUFL(packetData, 0) = PChar->id;
+            ref<uint32>(packetData, 0) = PChar->id;
             memcpy(packetData + 0x04, data[0x04], 20);
-            WBUFL(packetData, 24) = PChar->PLinkshell2->getID();
-            WBUFB(packetData, 28) = RBUFB(data, 0x15);
+            ref<uint32>(packetData, 24) = PChar->PLinkshell2->getID();
+            ref<uint8>(packetData, 28) = data.ref<uint8>(0x15);
             message::send(MSG_LINKSHELL_RANK_CHANGE, packetData, sizeof packetData, nullptr);
         }
     }
@@ -3363,16 +3475,16 @@ void SmallPacket0x077(map_session_data_t* session, CCharEntity* PChar, CBasicPac
             PChar->PParty->m_PAlliance->getMainParty() == PChar->PParty)
         {
             ShowDebug(CL_CYAN"(Alliance)Changing leader to %s\n" CL_RESET, data[0x04]);
-            PChar->PParty->m_PAlliance->assignAllianceLeader(data[0x04]);
+            PChar->PParty->m_PAlliance->assignAllianceLeader((const char*)data[0x04]);
             uint8 data[4] {};
-            WBUFL(data, 0) = PChar->PParty->m_PAlliance->m_AllianceID;
+            ref<uint32>(data, 0) = PChar->PParty->m_PAlliance->m_AllianceID;
             message::send(MSG_PT_RELOAD, data, sizeof data, nullptr);
         }
     }
     break;
     default:
     {
-        ShowError(CL_RED"SmallPacket0x077 : changing role packet with unknown byte <%.2X>\n" CL_RESET, RBUFB(data, (0x14)));
+        ShowError(CL_RED"SmallPacket0x077 : changing role packet with unknown byte <%.2X>\n" CL_RESET, data.ref<uint8>(0x14));
     }
     }
     return;
@@ -3398,8 +3510,8 @@ void SmallPacket0x078(map_session_data_t* session, CCharEntity* PChar, CBasicPac
 
 void SmallPacket0x083(map_session_data_t* session, CCharEntity* PChar, CBasicPacket data)
 {
-    uint8  quantity = RBUFB(data, (0x04));
-    uint8  shopSlotID = RBUFB(data, (0x0A));
+    uint8  quantity = data.ref<uint8>(0x04);
+    uint8  shopSlotID = data.ref<uint8>(0x0A);
 
     // Prevent users from buying from slots higher than 15.. (Prevents appraise duping..)
     if (shopSlotID > PChar->Container->getSize() - 1)
@@ -3449,16 +3561,16 @@ void SmallPacket0x084(map_session_data_t* session, CCharEntity* PChar, CBasicPac
 {
     if (PChar->animation != ANIMATION_SYNTH)
     {
-        uint32 quantity = RBUFL(data, (0x04));
-        uint16 itemID = RBUFW(data, (0x08));
-        uint8  slotID = RBUFB(data, (0x0A));
+        uint32 quantity = data.ref<uint32>(0x04);
+        uint16 itemID = data.ref<uint16>(0x08);
+        uint8  slotID = data.ref<uint8>(0x0A);
 
         CItem* PItem = PChar->getStorage(LOC_INVENTORY)->GetItem(slotID);
         if ((PItem != nullptr) &&
             (PItem->getID() == itemID) &&
             !(PItem->getFlag() & ITEM_FLAG_NOSALE))
         {
-            quantity = dsp_min(quantity, PItem->getQuantity());
+            quantity = std::min(quantity, PItem->getQuantity());
             PChar->Container->setItem(PChar->Container->getSize() - 1, itemID, slotID, quantity);
             PChar->pushPacket(new CShopAppraisePacket(slotID, PItem->getBasePrice()));
         }
@@ -3518,10 +3630,10 @@ void SmallPacket0x096(map_session_data_t* session, CCharEntity* PChar, CBasicPac
 
     PChar->CraftContainer->Clean();
 
-    uint16 ItemID = RBUFL(data, (0x06));
-    uint8  invSlotID = RBUFB(data, (0x08));
+    uint16 ItemID = data.ref<uint32>(0x06);
+    uint8  invSlotID = data.ref<uint8>(0x08);
 
-    uint8  numItems = RBUFB(data, (0x09));
+    uint8  numItems = data.ref<uint8>(0x09);
 
     std::vector<uint8> slotQty(MAX_CONTAINER_SIZE);
 
@@ -3536,8 +3648,8 @@ void SmallPacket0x096(map_session_data_t* session, CCharEntity* PChar, CBasicPac
 
     for (int32 SlotID = 0; SlotID < numItems; ++SlotID)
     {
-        ItemID = RBUFW(data, (0x0A + SlotID * 2));
-        invSlotID = RBUFB(data, (0x1A + SlotID));
+        ItemID = data.ref<uint16>(0x0A + SlotID * 2);
+        invSlotID = data.ref<uint8>(0x1A + SlotID);
 
         slotQty[invSlotID]++;
 
@@ -3561,8 +3673,8 @@ void SmallPacket0x096(map_session_data_t* session, CCharEntity* PChar, CBasicPac
 
 void SmallPacket0x0AA(map_session_data_t* session, CCharEntity* PChar, CBasicPacket data)
 {
-    uint16 itemID = RBUFW(data, (0x04));
-    uint8  quantity = RBUFB(data, (0x07));
+    uint16 itemID = data.ref<uint16>(0x04);
+    uint8  quantity = data.ref<uint8>(0x07);
     uint8  shopSlotID = PChar->PGuildShop->SearchItem(itemID);
     CItemShop* item = (CItemShop*)PChar->PGuildShop->GetItem(shopSlotID);
     CItem* gil = PChar->getStorage(LOC_INVENTORY)->GetItem(0);
@@ -3636,9 +3748,9 @@ void SmallPacket0x0AC(map_session_data_t* session, CCharEntity* PChar, CBasicPac
     {
         if (PChar->PGuildShop != nullptr)
         {
-            uint16 itemID = RBUFW(data, (0x04));
-            uint8  slot = RBUFB(data, (0x06));
-            uint8  quantity = RBUFB(data, (0x07));
+            uint16 itemID = data.ref<uint16>(0x04);
+            uint8  slot = data.ref<uint8>(0x06);
+            uint8  quantity = data.ref<uint8>(0x07);
             uint8  shopSlotID = PChar->PGuildShop->SearchItem(itemID);
             CItemShop* shopItem = (CItemShop*)PChar->PGuildShop->GetItem(shopSlotID);
             CItem*     charItem = PChar->getStorage(LOC_INVENTORY)->GetItem(slot);
@@ -3689,21 +3801,21 @@ void SmallPacket0x0AD(map_session_data_t* session, CCharEntity* PChar, CBasicPac
 
 void SmallPacket0x0B5(map_session_data_t* session, CCharEntity* PChar, CBasicPacket data)
 {
-    if (RBUFB(data, (0x06)) == '@' && CmdHandler.call(PChar, (const int8*)data[7]) == 0)
+    if (data.ref<uint8>(0x06) == '!' && CmdHandler.call(PChar, (const int8*)data[7]) == 0)
     {
         //this makes sure a command isn't sent to chat
     }
-    else if (RBUFB(data, (0x06)) == '#' && PChar->m_GMlevel > 0)
+    else if (data.ref<uint8>(0x06) == '#' && PChar->m_GMlevel > 0)
     {
-        message::send(MSG_CHAT_SERVMES, 0, 0, new CChatMessagePacket(PChar, MESSAGE_SYSTEM_1, data[7]));
+        message::send(MSG_CHAT_SERVMES, 0, 0, new CChatMessagePacket(PChar, MESSAGE_SYSTEM_1, (const char*)data[7]));
     }
     else
     {
         if (jailutils::InPrison(PChar))
         {
-            if (RBUFB(data, (0x04)) == MESSAGE_SAY)
+            if (data.ref<uint8>(0x04) == MESSAGE_SAY)
             {
-                PChar->loc.zone->PushPacket(PChar, CHAR_INRANGE, new CChatMessagePacket(PChar, MESSAGE_SAY, data[6]));
+                PChar->loc.zone->PushPacket(PChar, CHAR_INRANGE, new CChatMessagePacket(PChar, MESSAGE_SAY, (const char*)data[6]));
             }
             else
             {
@@ -3712,37 +3824,37 @@ void SmallPacket0x0B5(map_session_data_t* session, CCharEntity* PChar, CBasicPac
         }
         else
         {
-            switch (RBUFB(data, (0x04)))
+            switch (data.ref<uint8>(0x04))
             {
             case MESSAGE_SAY:
             {
                 if (map_config.audit_chat == 1 && map_config.audit_say == 1)
                 {
                     std::string qStr = ("INSERT into audit_chat (speaker,type,message,datetime) VALUES('");
-                    qStr += PChar->GetName();
+                    qStr += (const char*)PChar->GetName();
                     qStr += "','SAY','";
-                    qStr += escape(data[6]);
+                    qStr += escape((const char*)data[6]);
                     qStr += "',current_timestamp());";
                     const char * cC = qStr.c_str();
                     Sql_QueryStr(SqlHandle, cC);
                 }
-                PChar->loc.zone->PushPacket(PChar, CHAR_INRANGE, new CChatMessagePacket(PChar, MESSAGE_SAY, data[6]));
+                PChar->loc.zone->PushPacket(PChar, CHAR_INRANGE, new CChatMessagePacket(PChar, MESSAGE_SAY, (const char*)data[6]));
             }
             break;
-            case MESSAGE_EMOTION:    PChar->loc.zone->PushPacket(PChar, CHAR_INRANGE, new CChatMessagePacket(PChar, MESSAGE_EMOTION, data[6])); break;
+            case MESSAGE_EMOTION:    PChar->loc.zone->PushPacket(PChar, CHAR_INRANGE, new CChatMessagePacket(PChar, MESSAGE_EMOTION, (const char*)data[6])); break;
             case MESSAGE_SHOUT:
             {
                 if (map_config.audit_chat == 1 && map_config.audit_shout == 1)
                 {
                     std::string qStr = ("INSERT into audit_chat (speaker,type,message,datetime) VALUES('");
-                    qStr += PChar->GetName();
+                    qStr += (const char*)PChar->GetName();
                     qStr += "','SHOUT','";
-                    qStr += escape(data[6]);
+                    qStr += escape((const char*)data[6]);
                     qStr += "',current_timestamp());";
                     const char * cC = qStr.c_str();
                     Sql_QueryStr(SqlHandle, cC);
                 }
-                PChar->loc.zone->PushPacket(PChar, CHAR_INSHOUT, new CChatMessagePacket(PChar, MESSAGE_SHOUT, data[6]));
+                PChar->loc.zone->PushPacket(PChar, CHAR_INSHOUT, new CChatMessagePacket(PChar, MESSAGE_SHOUT, (const char*)data[6]));
             }
             break;
             case MESSAGE_LINKSHELL:
@@ -3750,20 +3862,20 @@ void SmallPacket0x0B5(map_session_data_t* session, CCharEntity* PChar, CBasicPac
                 if (PChar->PLinkshell1 != nullptr)
                 {
                     int8 packetData[8] {};
-                    WBUFL(packetData, 0) = PChar->PLinkshell1->getID();
-                    WBUFL(packetData, 4) = PChar->id;
-                    message::send(MSG_CHAT_LINKSHELL, packetData, sizeof packetData, new CChatMessagePacket(PChar, MESSAGE_LINKSHELL, data[6]));
+                    ref<uint32>(packetData, 0) = PChar->PLinkshell1->getID();
+                    ref<uint32>(packetData, 4) = PChar->id;
+                    message::send(MSG_CHAT_LINKSHELL, packetData, sizeof packetData, new CChatMessagePacket(PChar, MESSAGE_LINKSHELL, (const char*)data[6]));
 
                     if (map_config.audit_chat == 1 && map_config.audit_linkshell == 1)
                     {
-                        std::string name(PChar->PLinkshell1->getName());
-                        DecodeStringLinkshell(&name[0], &name[0]);
+                        std::string name((const char*)PChar->PLinkshell1->getName());
+                        DecodeStringLinkshell((int8*)&name[0], (int8*)&name[0]);
                         std::string qStr = ("INSERT INTO audit_chat (speaker,type,lsName,message,datetime) VALUES('");
-                        qStr += PChar->GetName();
+                        qStr += (const char*)PChar->GetName();
                         qStr += "','LINKSHELL','";
                         qStr += name.c_str();
                         qStr += "','";
-                        qStr += escape(data[6]);
+                        qStr += escape((const char*)data[6]);
                         qStr += "',current_timestamp());";
                         Sql_QueryStr(SqlHandle, qStr.c_str());
                     }
@@ -3775,21 +3887,21 @@ void SmallPacket0x0B5(map_session_data_t* session, CCharEntity* PChar, CBasicPac
                 if (PChar->PLinkshell2 != nullptr)
                 {
                     int8 packetData[8] {};
-                    WBUFL(packetData, 0) = PChar->PLinkshell2->getID();
-                    WBUFL(packetData, 4) = PChar->id;
-                    message::send(MSG_CHAT_LINKSHELL, packetData, sizeof packetData, new CChatMessagePacket(PChar, MESSAGE_LINKSHELL, data[6]));
+                    ref<uint32>(packetData, 0) = PChar->PLinkshell2->getID();
+                    ref<uint32>(packetData, 4) = PChar->id;
+                    message::send(MSG_CHAT_LINKSHELL, packetData, sizeof packetData, new CChatMessagePacket(PChar, MESSAGE_LINKSHELL, (const char*)data[6]));
 
                     if (map_config.audit_chat == 1 && map_config.audit_linkshell == 1)
                     {
-                        std::string name(PChar->PLinkshell2->getName());
-                        DecodeStringLinkshell(&name[0], &name[0]);
+                        std::string name((const char*)PChar->PLinkshell2->getName());
+                        DecodeStringLinkshell((int8*)&name[0], (int8*)&name[0]);
 
                         std::string qStr = ("INSERT INTO audit_chat (speaker,type,lsName,message,datetime) VALUES('");
-                        qStr += PChar->GetName();
+                        qStr += (const char*)PChar->GetName();
                         qStr += "','LINKSHELL','";
                         qStr += name.c_str();
                         qStr += "','";
-                        qStr += escape(data[6]);
+                        qStr += escape((const char*)data[6]);
                         qStr += "',current_timestamp());";
                         Sql_QueryStr(SqlHandle, qStr.c_str());
                     }
@@ -3801,16 +3913,16 @@ void SmallPacket0x0B5(map_session_data_t* session, CCharEntity* PChar, CBasicPac
                 if (PChar->PParty != nullptr)
                 {
                     int8 packetData[8] {};
-                    WBUFL(packetData, 0) = PChar->PParty->GetPartyID();
-                    WBUFL(packetData, 4) = PChar->id;
-                    message::send(MSG_CHAT_PARTY, packetData, sizeof packetData, new CChatMessagePacket(PChar, MESSAGE_PARTY, data[6]));
+                    ref<uint32>(packetData, 0) = PChar->PParty->GetPartyID();
+                    ref<uint32>(packetData, 4) = PChar->id;
+                    message::send(MSG_CHAT_PARTY, packetData, sizeof packetData, new CChatMessagePacket(PChar, MESSAGE_PARTY, (const char*)data[6]));
 
                     if (map_config.audit_chat == 1 && map_config.audit_party == 1)
                     {
                         std::string qStr = ("INSERT into audit_chat (speaker,type,message,datetime) VALUES('");
-                        qStr += PChar->GetName();
+                        qStr += (const char*)PChar->GetName();
                         qStr += "','PARTY','";
-                        qStr += escape(data[6]);
+                        qStr += escape((const char*)data[6]);
                         qStr += "',current_timestamp());";
                         const char * cC = qStr.c_str();
                         Sql_QueryStr(SqlHandle, cC);
@@ -3827,9 +3939,9 @@ void SmallPacket0x0B5(map_session_data_t* session, CCharEntity* PChar, CBasicPac
                         PChar->m_LastYell = gettick() + (map_config.yell_cooldown * 1000);
                         // ShowDebug(CL_CYAN" LastYell: %u \n" CL_RESET, PChar->m_LastYell);
                         int8 packetData[4] {};
-                        WBUFL(packetData, 0) = PChar->id;
+                        ref<uint32>(packetData, 0) = PChar->id;
 
-                        message::send(MSG_CHAT_YELL, packetData, sizeof packetData, new CChatMessagePacket(PChar, MESSAGE_YELL, data[6]));
+                        message::send(MSG_CHAT_YELL, packetData, sizeof packetData, new CChatMessagePacket(PChar, MESSAGE_YELL, (const char*)data[6]));
                     }
                     else // You must wait longer to perform that action.
                     {
@@ -3839,9 +3951,9 @@ void SmallPacket0x0B5(map_session_data_t* session, CCharEntity* PChar, CBasicPac
                     if (map_config.audit_chat == 1 && map_config.audit_yell == 1)
                     {
                         std::string qStr = ("INSERT into audit_chat (speaker,type,message,datetime) VALUES('");
-                        qStr += PChar->GetName();
+                        qStr += (const char*)PChar->GetName();
                         qStr += "','YELL','";
-                        qStr += escape(data[6]);
+                        qStr += escape((const char*)data[6]);
                         qStr += "',current_timestamp());";
                         const char * cC = qStr.c_str();
                         Sql_QueryStr(SqlHandle, cC);
@@ -3873,21 +3985,21 @@ void SmallPacket0x0B6(map_session_data_t* session, CCharEntity* PChar, CBasicPac
         PChar->pushPacket(new CMessageBasicPacket(PChar, PChar, 0, 0, 316));
         return;
     }
-    string_t RecipientName = string_t(data[5], 15);
+    string_t RecipientName = string_t((const char*)data[5], 15);
 
     int8 packetData[64];
-    strncpy(packetData + 4, RecipientName.c_str(), RecipientName.length() + 1);
-    WBUFL(packetData, 0) = PChar->id;
-    message::send(MSG_CHAT_TELL, packetData, RecipientName.length() + 5, new CChatMessagePacket(PChar, MESSAGE_TELL, data[20]));
+    strncpy((char*)packetData + 4, RecipientName.c_str(), RecipientName.length() + 1);
+    ref<uint32>(packetData, 0) = PChar->id;
+    message::send(MSG_CHAT_TELL, packetData, RecipientName.length() + 5, new CChatMessagePacket(PChar, MESSAGE_TELL, (const char*)data[20]));
 
     if (map_config.audit_chat == 1 && map_config.audit_tell == 1)
     {
         std::string qStr = ("INSERT into audit_chat (speaker,type,recipient,message,datetime) VALUES('");
-        qStr += PChar->GetName();
+        qStr += (const char*)PChar->GetName();
         qStr += "','TELL','";
         qStr += RecipientName.c_str();
         qStr += "','";
-        qStr += escape(data[20]);
+        qStr += escape((const char*)data[20]);
         qStr += "',current_timestamp());";
         const char * cC = qStr.c_str();
         Sql_QueryStr(SqlHandle, cC);
@@ -3903,9 +4015,9 @@ void SmallPacket0x0B6(map_session_data_t* session, CCharEntity* PChar, CBasicPac
 void SmallPacket0x0BE(map_session_data_t* session, CCharEntity* PChar, CBasicPacket data)
 {
 
-    uint8 operation = RBUFB(data, 0x05);
+    uint8 operation = data.ref<uint8>(0x05);
 
-    switch (RBUFB(data, (0x04)))
+    switch (data.ref<uint8>(0x04))
     {
     case 2: // change mode
     {
@@ -3921,7 +4033,7 @@ void SmallPacket0x0BE(map_session_data_t* session, CCharEntity* PChar, CBasicPac
     {
         if (PChar->m_moghouseID)
         {
-            MERIT_TYPE merit = (MERIT_TYPE)(RBUFW(data, (0x06)) << 1);
+            MERIT_TYPE merit = (MERIT_TYPE)(data.ref<uint16>(0x06) << 1);
 
             if (PChar->PMeritPoints->IsMeritExist(merit))
             {
@@ -3969,7 +4081,7 @@ void SmallPacket0x0BE(map_session_data_t* session, CCharEntity* PChar, CBasicPac
 
 void SmallPacket0x0C3(map_session_data_t* session, CCharEntity* PChar, CBasicPacket data)
 {
-    uint8 lsNum = RBUFB(data, 0x05);
+    uint8 lsNum = data.ref<uint8>(0x05);
     CItemLinkshell* PItemLinkshell = (CItemLinkshell*)PChar->getEquip(SLOT_LINK1);
     if (lsNum == 2)
     {
@@ -3997,9 +4109,9 @@ void SmallPacket0x0C3(map_session_data_t* session, CCharEntity* PChar, CBasicPac
 
 void SmallPacket0x0C4(map_session_data_t* session, CCharEntity* PChar, CBasicPacket data)
 {
-    uint8 SlotID = RBUFB(data, (0x06));
-    uint8 action = RBUFB(data, (0x08));
-    uint8 lsNum = RBUFB(data, (0x1B));
+    uint8 SlotID = data.ref<uint8>(0x06);
+    uint8 action = data.ref<uint8>(0x08);
+    uint8 lsNum = data.ref<uint8>(0x1B);
 
     CItemLinkshell* PItemLinkshell = (CItemLinkshell*)PChar->getStorage(LOC_INVENTORY)->GetItem(SlotID);
 
@@ -4009,8 +4121,8 @@ void SmallPacket0x0C4(map_session_data_t* session, CCharEntity* PChar, CBasicPac
         if (PItemLinkshell->getID() == 512)
         {
             uint32   LinkshellID = 0;
-            uint16   LinkshellColor = RBUFW(data, (0x04));
-            string_t LinkshellName = data[12];
+            uint16   LinkshellColor = data.ref<uint16>(0x04);
+            string_t LinkshellName = (const char*)data[12];
             int8     DecodedName[21];
             int8     EncodedName[16];
 
@@ -4018,7 +4130,8 @@ void SmallPacket0x0C4(map_session_data_t* session, CCharEntity* PChar, CBasicPac
             EncodeStringLinkshell(DecodedName, EncodedName);
             // TODO: Check if a linebreak is needed..
 
-            if (LinkshellID = linkshell::RegisterNewLinkshell(DecodedName, LinkshellColor))
+            LinkshellID = linkshell::RegisterNewLinkshell(DecodedName, LinkshellColor);
+            if (LinkshellID != 0)
             {
                 delete PItemLinkshell;
                 PItemLinkshell = (CItemLinkshell*)itemutils::GetItem(513);
@@ -4030,10 +4143,10 @@ void SmallPacket0x0C4(map_session_data_t* session, CCharEntity* PChar, CBasicPac
                 PItemLinkshell->setSignature(EncodedName); //because apparently the format from the packet isn't right, and is missing terminators
                 PItemLinkshell->SetLSColor(LinkshellColor);
 
-                int8 extra[sizeof(PItemLinkshell->m_extra) * 2 + 1];
+                char extra[sizeof(PItemLinkshell->m_extra) * 2 + 1];
                 Sql_EscapeStringLen(SqlHandle, extra, (const char*)PItemLinkshell->m_extra, sizeof(PItemLinkshell->m_extra));
 
-                const int8* Query = "UPDATE char_inventory SET signature = '%s', extra = '%s', itemId = 513 WHERE charid = %u AND location = 0 AND slot = %u LIMIT 1";
+                const char* Query = "UPDATE char_inventory SET signature = '%s', extra = '%s', itemId = 513 WHERE charid = %u AND location = 0 AND slot = %u LIMIT 1";
 
                 if (Sql_Query(SqlHandle, Query, DecodedName, extra, PChar->id, SlotID) != SQL_ERROR &&
                     Sql_AffectedRows(SqlHandle) != 0)
@@ -4133,17 +4246,17 @@ void SmallPacket0x0C4(map_session_data_t* session, CCharEntity* PChar, CBasicPac
 
 void SmallPacket0x0CB(map_session_data_t* session, CCharEntity* PChar, CBasicPacket data)
 {
-    if (RBUFB(data, 0x04) == 1)
+    if (data.ref<uint8>(0x04) == 1)
     {
         //open
     }
-    else if (RBUFB(data, 0x04) == 2)
+    else if (data.ref<uint8>(0x04) == 2)
     {
         //close
     }
     else
     {
-        ShowWarning(CL_RED"SmallPacket0x0CB : unknown byte <%.2X>\n" CL_RESET, RBUFB(data, (0x04)));
+        ShowWarning(CL_RED"SmallPacket0x0CB : unknown byte <%.2X>\n" CL_RESET, data.ref<uint8>(0x04));
     }
 }
 
@@ -4186,7 +4299,7 @@ void SmallPacket0x0D3(map_session_data_t* session, CCharEntity* PChar, CBasicPac
 
 void SmallPacket0x0DB(map_session_data_t* session, CCharEntity* PChar, CBasicPacket data)
 {
-    PChar->search.language = RBUFB(data, (0x24));
+    PChar->search.language = data.ref<uint8>(0x24);
     return;
 }
 
@@ -4198,39 +4311,95 @@ void SmallPacket0x0DB(map_session_data_t* session, CCharEntity* PChar, CBasicPac
 
 void SmallPacket0x0DC(map_session_data_t* session, CCharEntity* PChar, CBasicPacket data)
 {
-    switch (RBUFL(data, (0x04)))
+    switch (data.ref<uint32>(0x04))
     {
-    case 0x0001:
+    case NFLAG_INVITE:
+        // /invite [on|off]
         PChar->nameflags.flags ^= FLAG_INVITE;
+        //PChar->menuConfigFlags.flags ^= NFLAG_INVITE;
         break;
-    case 0x0002:
-        if (RBUFB(data, (0x10)) == 1)
+    case NFLAG_AWAY:
+        // /away | /online
+        if (data.ref<uint8>(0x10) == 1)
             PChar->nameflags.flags |= FLAG_AWAY;
-        if (RBUFB(data, (0x10)) == 2)
+        if (data.ref<uint8>(0x10) == 2)
             PChar->nameflags.flags &= ~FLAG_AWAY;
         break;
-    case 0x0004:
+    case NFLAG_ANON:
+        // /anon [on|off]
         PChar->nameflags.flags ^= FLAG_ANON;
+        if (PChar->nameflags.flags & FLAG_ANON)
+        {
+            PChar->pushPacket(new CMessageSystemPacket(0, 0, 175));
+        }
+        else
+        {
+            PChar->pushPacket(new CMessageSystemPacket(0, 0, 176));
+        }
         break;
-    case 0x4000:
-        if (RBUFB(data, (0x10)) == 1)
+    case NFLAG_AUTOTARGET:
+        // /autotarget [on|off]
+        if (data.ref<uint8>(0x10) == 1)
             PChar->m_hasAutoTarget = false;
-        if (RBUFB(data, (0x10)) == 2)
+        if (data.ref<uint8>(0x10) == 2)
             PChar->m_hasAutoTarget = true;
         break;
-    case 0x8000:
-        //if(RBUFB(data,(0x10)) == 1)    // autogroup on
-        //if(RBUFB(data,(0x10)) == 2)    // autogroup off
+    case NFLAG_AUTOGROUP:
+        // /autogroup [on|off]
+        if (data.ref<uint8>(0x10) == 1)
+            PChar->menuConfigFlags.flags |= NFLAG_AUTOGROUP;
+        if (data.ref<uint8>(0x10) == 2)
+            PChar->menuConfigFlags.flags &= ~NFLAG_AUTOGROUP;
         break;
-    case 0x200000:
-        //if(RBUFB(data,(0x10)) == 1)    // party request on
-        //if(RBUFB(data,(0x10)) == 2)    // party request off
+    case NFLAG_MENTOR:
+        // /mentor [on|off]
+        if (data.ref<uint8>(0x10) == 1)
+            PChar->menuConfigFlags.flags |= NFLAG_MENTOR;
+        else if (data.ref<uint8>(0x10) == 2)
+            PChar->menuConfigFlags.flags &= ~NFLAG_MENTOR;
+        break;
+    case NFLAG_NEWPLAYER:
+        // Cancel new adventurer status.
+        if (data.ref<uint8>(0x10) == 1)
+            PChar->menuConfigFlags.flags |= NFLAG_NEWPLAYER;
+        break;
+    case NFLAG_DISPLAY_HEAD:
+    {
+        // /displayhead [on|off]
+        auto flags = PChar->menuConfigFlags.byte4;
+        auto param = data.ref<uint8>(0x10);
+        if (param == 1)
+            PChar->menuConfigFlags.flags |= NFLAG_DISPLAY_HEAD;
+        else if (param == 2)
+            PChar->menuConfigFlags.flags &= ~NFLAG_DISPLAY_HEAD;
+
+        // This should only check that the display head bit has changed, since
+        // a user gaining mentorship or losing new adventurer status at the
+        // same time this code is called. Since it is unlikely that situation
+        // would occur and the negative impact would be displaying the headgear
+        // message twice, it isn't worth checking. If additional bits are found
+        // in this flag, that assumption may need to be re-evaluated.
+        if (flags != PChar->menuConfigFlags.byte4)
+        {
+            PChar->pushPacket(new CCharAppearancePacket(PChar));
+            PChar->pushPacket(new CMessageStandardPacket(param == 1 ? 0x105 : 0x104));
+        }
         break;
     }
-    charutils::SaveCharStats(PChar);
+    case NFLAG_RECRUIT:
+        // /recruit [on|off]
+        if (data.ref<uint8>(0x10) == 1)
+         PChar->menuConfigFlags.flags |= NFLAG_RECRUIT;
+        if (data.ref<uint8>(0x10) == 2)
+         PChar->menuConfigFlags.flags &= ~NFLAG_RECRUIT;
+        break;
+    }
 
-    PChar->updatemask |= UPDATE_HP;
+    charutils::SaveCharStats(PChar);
+    charutils::SaveMenuConfigFlags(PChar);
     PChar->pushPacket(new CMenuConfigPacket(PChar));
+    PChar->pushPacket(new CCharUpdatePacket(PChar));
+    PChar->pushPacket(new CCharSyncPacket(PChar));
     return;
 }
 
@@ -4252,9 +4421,9 @@ void SmallPacket0x0DC(map_session_data_t* session, CCharEntity* PChar, CBasicPac
 
 void SmallPacket0x0DD(map_session_data_t* session, CCharEntity* PChar, CBasicPacket data)
 {
-    uint32 id = RBUFL(data, (0x04));
-    uint16 targid = RBUFW(data, (0x08));
-    uint8 type = RBUFB(data, (0x0C));
+    uint32 id = data.ref<uint32>(0x04);
+    uint16 targid = data.ref<uint16>(0x08);
+    uint8 type = data.ref<uint8>(0x0C);
 
     //checkparam
     if (type == 0x02)
@@ -4347,6 +4516,7 @@ void SmallPacket0x0DD(map_session_data_t* session, CCharEntity* PChar, CBasicPac
                 uint32 baseExp = charutils::GetRealExp(PChar->GetMLevel(), PTarget->GetMLevel());
                 uint16 charAcc = PChar->ACC(SLOT_MAIN, (uint8)0);
                 uint16 charAtt = PChar->ATT();
+                uint8 mobLvl = PTarget->GetMLevel();
                 uint16 mobEva = PTarget->EVA();
                 uint16 mobDef = PTarget->DEF();
 
@@ -4361,23 +4531,23 @@ void SmallPacket0x0DD(map_session_data_t* session, CCharEntity* PChar, CBasicPac
                 else if (baseExp >= 15) MessageValue = 0x42;
                 else if (baseExp == 0) MessageValue = 0x40;
                 if (mobDef > charAtt && (mobEva - 30) > charAcc)
-                    PChar->pushPacket(new CMessageBasicPacket(PChar, PTarget, 0, MessageValue, 170));//high eva high def
+                    PChar->pushPacket(new CMessageBasicPacket(PChar, PTarget, mobLvl, MessageValue, 170));//high eva high def
                 else if ((mobDef * 1.25) > charAtt && mobDef <= charAtt && (mobEva - 30) > charAcc)
-                    PChar->pushPacket(new CMessageBasicPacket(PChar, PTarget, 0, MessageValue, 171));//high eva
+                    PChar->pushPacket(new CMessageBasicPacket(PChar, PTarget, mobLvl, MessageValue, 171));//high eva
                 else if ((mobDef * 1.25) <= charAtt && (mobEva - 30) > charAcc)
-                    PChar->pushPacket(new CMessageBasicPacket(PChar, PTarget, 0, MessageValue, 172));//high eva low def
+                    PChar->pushPacket(new CMessageBasicPacket(PChar, PTarget, mobLvl, MessageValue, 172));//high eva low def
                 else if (mobDef > charAtt && (mobEva - 30) <= charAcc && (mobEva + 10) > charAcc)
-                    PChar->pushPacket(new CMessageBasicPacket(PChar, PTarget, 0, MessageValue, 173));//high def
+                    PChar->pushPacket(new CMessageBasicPacket(PChar, PTarget, mobLvl, MessageValue, 173));//high def
                 else if ((mobDef * 1.25) <= charAtt && (mobEva - 30) <= charAcc && (mobEva + 10) > charAcc)
-                    PChar->pushPacket(new CMessageBasicPacket(PChar, PTarget, 0, MessageValue, 175));//low def
+                    PChar->pushPacket(new CMessageBasicPacket(PChar, PTarget, mobLvl, MessageValue, 175));//low def
                 else if (mobDef > charAtt && (mobEva + 10) <= charAcc)
-                    PChar->pushPacket(new CMessageBasicPacket(PChar, PTarget, 0, MessageValue, 176));//low eva high def
+                    PChar->pushPacket(new CMessageBasicPacket(PChar, PTarget, mobLvl, MessageValue, 176));//low eva high def
                 else if ((mobDef * 1.25) > charAtt && mobDef <= charAtt && (mobEva + 10) <= charAcc)
-                    PChar->pushPacket(new CMessageBasicPacket(PChar, PTarget, 0, MessageValue, 177));//low eva
+                    PChar->pushPacket(new CMessageBasicPacket(PChar, PTarget, mobLvl, MessageValue, 177));//low eva
                 else if ((mobDef * 1.25) <= charAtt && (mobEva + 10) <= charAcc)
-                    PChar->pushPacket(new CMessageBasicPacket(PChar, PTarget, 0, MessageValue, 178));//low eva low def
+                    PChar->pushPacket(new CMessageBasicPacket(PChar, PTarget, mobLvl, MessageValue, 178));//low eva low def
                 else
-                    PChar->pushPacket(new CMessageBasicPacket(PChar, PTarget, 0, MessageValue, 174));//broke even
+                    PChar->pushPacket(new CMessageBasicPacket(PChar, PTarget, mobLvl, MessageValue, 174));//broke even
             }
         }
         break;
@@ -4385,13 +4555,17 @@ void SmallPacket0x0DD(map_session_data_t* session, CCharEntity* PChar, CBasicPac
         {
             CCharEntity* PTarget = (CCharEntity*)PEntity;
 
-            if (PChar->m_isGMHidden == false || PChar->m_isGMHidden == true && PTarget->m_GMlevel >= PChar->m_GMlevel)
+            if (PChar->m_isGMHidden == false || (PChar->m_isGMHidden == true && PTarget->m_GMlevel >= PChar->m_GMlevel))
                 PTarget->pushPacket(new CMessageStandardPacket(PChar, 0, 0, 89));
 
             PChar->pushPacket(new CBazaarMessagePacket(PTarget));
             PChar->pushPacket(new CCheckPacket(PChar, PTarget));
         }
         break;
+        default:
+        {
+            break;
+        }
         }
     }
     return;
@@ -4406,10 +4580,10 @@ void SmallPacket0x0DD(map_session_data_t* session, CCharEntity* PChar, CBasicPac
 void SmallPacket0x0DE(map_session_data_t* session, CCharEntity* PChar, CBasicPacket data)
 {
     PChar->bazaar.message.clear();
-    PChar->bazaar.message.insert(0, data[4]);
+    PChar->bazaar.message.insert(0, (const char*)data[4]);
 
-    int8 message[256];
-    Sql_EscapeString(SqlHandle, message, data[4]);
+    char message[256];
+    Sql_EscapeString(SqlHandle, message, (const char*)data[4]);
 
     Sql_Query(SqlHandle, "UPDATE char_stats SET bazaar_message = '%s' WHERE charid = %u;", message, PChar->id);
     return;
@@ -4424,9 +4598,9 @@ void SmallPacket0x0DE(map_session_data_t* session, CCharEntity* PChar, CBasicPac
 void SmallPacket0x0E0(map_session_data_t* session, CCharEntity* PChar, CBasicPacket data)
 {
     PChar->search.message.clear();
-    PChar->search.message.insert(0, data[4]);
+    PChar->search.message.insert(0, (const char*)data[4]);
 
-    PChar->search.messagetype = RBUFB(data, (0xA4));
+    PChar->search.messagetype = data.ref<uint8>(0xA4);
 
     // No response is needed to be sent from this packet.
     // This is only used when searching for a character.
@@ -4506,7 +4680,7 @@ void SmallPacket0x0E2(map_session_data_t* session, CCharEntity* PChar, CBasicPac
 
     if (PChar->PLinkshell1 != nullptr && (PItemLinkshell != nullptr && PItemLinkshell->isType(ITEM_LINKSHELL)))
     {
-        switch (RBUFB(data, (0x04)) & 0xF0)
+        switch (data.ref<uint8>(0x04) & 0xF0)
         {
         case 0x20: // Establish right to change the message..
         {
@@ -4554,7 +4728,7 @@ void SmallPacket0x0E7(map_session_data_t* session, CCharEntity* PChar, CBasicPac
     }
     else if (PChar->animation == ANIMATION_NONE)
     {
-        uint8 ExitType = (RBUFB(data, (0x06)) == 1 ? 7 : 35);
+        uint8 ExitType = (data.ref<uint8>(0x06) == 1 ? 7 : 35);
 
         if (PChar->PPet == nullptr ||
             (PChar->PPet->m_EcoSystem != SYSTEM_AVATAR &&
@@ -4571,7 +4745,7 @@ void SmallPacket0x0E7(map_session_data_t* session, CCharEntity* PChar, CBasicPac
             PChar->StatusEffectContainer->DelStatusEffect(EFFECT_HEALING);
         }
         else {
-            uint8 ExitType = (RBUFB(data, (0x06)) == 1 ? 7 : 35);
+            uint8 ExitType = (data.ref<uint8>(0x06) == 1 ? 7 : 35);
 
             PChar->StatusEffectContainer->AddStatusEffect(new CStatusEffect(EFFECT_LEAVEGAME, 0, ExitType, 5, 0));
         }
@@ -4599,8 +4773,8 @@ void SmallPacket0x0E8(map_session_data_t* session, CCharEntity* PChar, CBasicPac
     {
         if (PChar->PPet == nullptr ||
             (PChar->PPet->m_EcoSystem != SYSTEM_AVATAR &&
-            PChar->PPet->m_EcoSystem != SYSTEM_ELEMENTAL ) &&
-            !PChar->PAI->IsEngaged())
+            PChar->PPet->m_EcoSystem != SYSTEM_ELEMENTAL &&
+            !PChar->PAI->IsEngaged()))
         {
             PChar->PAI->ClearStateStack();
             if (PChar->PPet && PChar->PPet->objtype == TYPE_PET &&
@@ -4650,19 +4824,11 @@ void SmallPacket0x0EA(map_session_data_t* session, CCharEntity* PChar, CBasicPac
 
 void SmallPacket0x0F1(map_session_data_t* session, CCharEntity* PChar, CBasicPacket data)
 {
-    uint16 IconID = RBUFW(data, (0x04));
+    uint16 IconID = data.ref<uint16>(0x04);
 
-    if (IconID != 0)
-    {
-        auto effect = PChar->StatusEffectContainer->GetStatusEffect((EFFECT)IconID);
-
-        // think this covers all the removable effects
-        if (!effect || effect->GetFlag() & EFFECTFLAG_CONFRONTATION || effect->GetFlag() & EFFECTFLAG_FOOD ||
-            effect->GetFlag() & EFFECTFLAG_ERASABLE)
-            return;
-
+    if (IconID)
         PChar->StatusEffectContainer->DelStatusEffectsByIcon(IconID);
-    }
+
     return;
 }
 
@@ -4674,7 +4840,7 @@ void SmallPacket0x0F1(map_session_data_t* session, CCharEntity* PChar, CBasicPac
 
 void SmallPacket0x0F2(map_session_data_t* session, CCharEntity* PChar, CBasicPacket data)
 {
-    PChar->loc.boundary = RBUFW(data, (0x06));
+    PChar->loc.boundary = data.ref<uint16>(0x06);
 
     charutils::SaveCharPosition(PChar);
     return;
@@ -4859,7 +5025,7 @@ void SmallPacket0x0F4(map_session_data_t* session, CCharEntity* PChar, CBasicPac
 
 void SmallPacket0x0F5(map_session_data_t* session, CCharEntity* PChar, CBasicPacket data)
 {
-    uint16 TargID = RBUFW(data, (0x04));
+    uint16 TargID = data.ref<uint16>(0x04);
 
     PChar->PWideScanTarget = PChar->GetEntity(TargID, TYPE_MOB | TYPE_NPC);
     return;
@@ -4885,17 +5051,17 @@ void SmallPacket0x0F6(map_session_data_t* session, CCharEntity* PChar, CBasicPac
 
 void SmallPacket0x0FA(map_session_data_t* session, CCharEntity* PChar, CBasicPacket data)
 {
-    uint16 ItemID = RBUFW(data, (0x04));
+    uint16 ItemID = data.ref<uint16>(0x04);
 
     if (ItemID == 0)
         return;
 
-    uint8  slotID = RBUFB(data, (0x06));
-    uint8  containerID = RBUFB(data, (0x07));
-    uint8  col = RBUFB(data, (0x09));
-    uint8  level = RBUFB(data, (0x0A));
-    uint8  row = RBUFB(data, (0x0B));
-    uint8  rotation = RBUFB(data, (0x0C));
+    uint8  slotID = data.ref<uint8>(0x06);
+    uint8  containerID = data.ref<uint8>(0x07);
+    uint8  col = data.ref<uint8>(0x09);
+    uint8  level = data.ref<uint8>(0x0A);
+    uint8  row = data.ref<uint8>(0x0B);
+    uint8  rotation = data.ref<uint8>(0x0C);
 
     CItemFurnishing* PItem = (CItemFurnishing*)PChar->getStorage(containerID)->GetItem(slotID);
 
@@ -4917,10 +5083,10 @@ void SmallPacket0x0FA(map_session_data_t* session, CCharEntity* PChar, CBasicPac
 
         PItem->setSubType(ITEM_LOCKED);
 
-        int8 extra[sizeof(PItem->m_extra) * 2 + 1];
-        Sql_EscapeStringLen(SqlHandle, extra, (const int8*)PItem->m_extra, sizeof(PItem->m_extra));
+        char extra[sizeof(PItem->m_extra) * 2 + 1];
+        Sql_EscapeStringLen(SqlHandle, extra, (const char*)PItem->m_extra, sizeof(PItem->m_extra));
 
-        const int8* Query =
+        const char* Query =
             "UPDATE char_inventory "
             "SET "
             "extra = '%s' "
@@ -4946,15 +5112,15 @@ void SmallPacket0x0FA(map_session_data_t* session, CCharEntity* PChar, CBasicPac
 
 void SmallPacket0x0FB(map_session_data_t* session, CCharEntity* PChar, CBasicPacket data)
 {
-    uint16 ItemID = RBUFW(data, (0x04));
+    uint16 ItemID = data.ref<uint16>(0x04);
 
     if (ItemID == 0)
     {
         return;
     }
 
-    uint8  slotID = RBUFB(data, (0x06));
-    uint8 containerID = RBUFB(data, (0x07));
+    uint8  slotID = data.ref<uint8>(0x06);
+    uint8 containerID = data.ref<uint8>(0x07);
 
     CItemContainer* PItemContainer = PChar->getStorage(containerID);
 
@@ -4966,7 +5132,7 @@ void SmallPacket0x0FB(map_session_data_t* session, CCharEntity* PChar, CBasicPac
     {
         PItemContainer = PChar->getStorage(LOC_STORAGE);
 
-        uint8 RemovedSize = PItemContainer->GetSize() - dsp_min(PItemContainer->GetSize(), PItemContainer->GetBuff() - PItem->getStorage());
+        uint8 RemovedSize = PItemContainer->GetSize() - std::min<uint8>(PItemContainer->GetSize(), PItemContainer->GetBuff() - PItem->getStorage());
 
         if (PItemContainer->GetFreeSlotsCount() >= RemovedSize)
         {
@@ -4978,10 +5144,10 @@ void SmallPacket0x0FB(map_session_data_t* session, CCharEntity* PChar, CBasicPac
 
             PItem->setSubType(ITEM_UNLOCKED);
 
-            int8 extra[sizeof(PItem->m_extra) * 2 + 1];
-            Sql_EscapeStringLen(SqlHandle, extra, (const int8*)PItem->m_extra, sizeof(PItem->m_extra));
+            char extra[sizeof(PItem->m_extra) * 2 + 1];
+            Sql_EscapeStringLen(SqlHandle, extra, (const char*)PItem->m_extra, sizeof(PItem->m_extra));
 
-            const int8* Query =
+            const char* Query =
                 "UPDATE char_inventory "
                 "SET "
                 "extra = '%s' "
@@ -5022,8 +5188,8 @@ void SmallPacket0x100(map_session_data_t* session, CCharEntity* PChar, CBasicPac
 {
     if (PChar->loc.zone->CanUseMisc(MISC_MOGMENU) || PChar->m_moghouseID)
     {
-        uint8 mjob = RBUFB(data, (0x04));
-        uint8 sjob = RBUFB(data, (0x05));
+        uint8 mjob = data.ref<uint8>(0x04);
+        uint8 sjob = data.ref<uint8>(0x05);
 
         if ((mjob > 0x00) && (mjob < MAX_JOBTYPE) && (PChar->jobs.unlocked & (1 << mjob)))
         {
@@ -5119,20 +5285,20 @@ void SmallPacket0x100(map_session_data_t* session, CCharEntity* PChar, CBasicPac
 
 void SmallPacket0x102(map_session_data_t* session, CCharEntity* PChar, CBasicPacket data)
 {
-    uint8 job = RBUFB(data, (0x08));
+    uint8 job = data.ref<uint8>(0x08);
     if ((PChar->GetMJob() == JOB_BLU || PChar->GetSJob() == JOB_BLU) && job == JOB_BLU) {
         // This may be a request to add or remove set spells, so lets check.
 
-        uint8 spellToAdd = RBUFB(data, (0x04)); // this is non-zero if client wants to add.
+        uint8 spellToAdd = data.ref<uint8>(0x04); // this is non-zero if client wants to add.
         uint8 spellInQuestion = 0;
         uint8 spellIndex = -1;
 
         if (spellToAdd == 0x00) {
             for (uint8 i = 0x0C; i <= 0x1F; i++) {
-                if (RBUFB(data, i) > 0) {
-                    spellInQuestion = RBUFB(data, i);
+                if (data.ref<uint8>(i) > 0) {
+                    spellInQuestion = data.ref<uint8>(i);
                     spellIndex = i - 0x0C;
-                    CBlueSpell* spell = (CBlueSpell*)spell::GetSpell(spellInQuestion + 0x200); // the spells in this packet are offsetted by 0x200 from their spell IDs.
+                    CBlueSpell* spell = (CBlueSpell*)spell::GetSpell(static_cast<SpellID>(spellInQuestion + 0x200)); // the spells in this packet are offsetted by 0x200 from their spell IDs.
 
                     if (spell != nullptr) {
                         blueutils::SetBlueSpell(PChar, spell, spellIndex, (spellToAdd > 0));
@@ -5152,15 +5318,15 @@ void SmallPacket0x102(map_session_data_t* session, CCharEntity* PChar, CBasicPac
         else {
             // loop all 20 slots and find which index they are playing with
             for (uint8 i = 0x0C; i <= 0x1F; i++) {
-                if (RBUFB(data, i) > 0) {
-                    spellInQuestion = RBUFB(data, i);
+                if (data.ref<uint8>(i) > 0) {
+                    spellInQuestion = data.ref<uint8>(i);
                     spellIndex = i - 0x0C;
                     break;
                 }
             }
 
             if (spellIndex != -1 && spellInQuestion != 0) {
-                CBlueSpell* spell = (CBlueSpell*)spell::GetSpell(spellInQuestion + 0x200); // the spells in this packet are offsetted by 0x200 from their spell IDs.
+                CBlueSpell* spell = (CBlueSpell*)spell::GetSpell(static_cast<SpellID>(spellInQuestion + 0x200)); // the spells in this packet are offsetted by 0x200 from their spell IDs.
 
                 if (spell != nullptr) {
                     blueutils::SetBlueSpell(PChar, spell, spellIndex, (spellToAdd > 0));
@@ -5180,16 +5346,16 @@ void SmallPacket0x102(map_session_data_t* session, CCharEntity* PChar, CBasicPac
             }
         }
     }
-    else if ((PChar->GetMJob() == JOB_PUP || PChar->GetSJob() == JOB_PUP) && job == JOB_PUP && PChar->PAutomaton != nullptr)
+    else if ((PChar->GetMJob() == JOB_PUP || PChar->GetSJob() == JOB_PUP) && job == JOB_PUP && PChar->PAutomaton != nullptr && PChar->PPet == nullptr)
     {
-        uint8 attachment = RBUFB(data, 0x04);
+        uint8 attachment = data.ref<uint8>(0x04);
 
         if (attachment == 0x00)
         {
             //remove all attachments specified
             for (uint8 i = 0x0E; i < 0x1A; i++)
             {
-                if (RBUFB(data, i) != 0)
+                if (data.ref<uint8>(i) != 0)
                 {
                     puppetutils::setAttachment(PChar, i - 0x0E, 0x00);
                 }
@@ -5197,22 +5363,23 @@ void SmallPacket0x102(map_session_data_t* session, CCharEntity* PChar, CBasicPac
         }
         else
         {
-            if (RBUFB(data, 0x0C) != 0)
+            if (data.ref<uint8>(0x0C) != 0)
             {
-                puppetutils::setHead(PChar, RBUFB(data, 0x0C));
+                puppetutils::setHead(PChar, data.ref<uint8>(0x0C));
+                puppetutils::LoadAutomatonStats(PChar);
             }
-            else if (RBUFB(data, 0x0D) != 0)
+            else if (data.ref<uint8>(0x0D) != 0)
             {
-                puppetutils::setFrame(PChar, RBUFB(data, 0x0D));
+                puppetutils::setFrame(PChar, data.ref<uint8>(0x0D));
                 puppetutils::LoadAutomatonStats(PChar);
             }
             else
             {
                 for (uint8 i = 0x0E; i < 0x1A; i++)
                 {
-                    if (RBUFB(data, i) != 0)
+                    if (data.ref<uint8>(i) != 0)
                     {
-                        puppetutils::setAttachment(PChar, i - 0x0E, RBUFB(data, i));
+                        puppetutils::setAttachment(PChar, i - 0x0E, data.ref<uint8>(i));
                     }
                 }
             }
@@ -5240,7 +5407,7 @@ void SmallPacket0x104(map_session_data_t* session, CCharEntity* PChar, CBasicPac
     {
         for (uint16 i = 0; i < PTarget->BazaarCustomers.size(); ++i)
         {
-            if (PTarget->BazaarCustomers[i].id == PChar->targid)
+            if (PTarget->BazaarCustomers[i].id == PChar->id)
             {
                 PTarget->BazaarCustomers.erase(PTarget->BazaarCustomers.begin() + i--);
             }
@@ -5262,7 +5429,7 @@ void SmallPacket0x105(map_session_data_t* session, CCharEntity* PChar, CBasicPac
     DSP_DEBUG_BREAK_IF(PChar->BazaarID.id != 0);
     DSP_DEBUG_BREAK_IF(PChar->BazaarID.targid != 0);
 
-    uint32 charid = RBUFL(data, (0x04));
+    uint32 charid = data.ref<uint32>(0x04);
 
     CCharEntity* PTarget = charid != 0 ? (CCharEntity*)PChar->loc.zone->GetCharByID(charid) : (CCharEntity*)PChar->GetEntity(PChar->m_TargID, TYPE_PC);
 
@@ -5299,8 +5466,8 @@ void SmallPacket0x105(map_session_data_t* session, CCharEntity* PChar, CBasicPac
 
 void SmallPacket0x106(map_session_data_t* session, CCharEntity* PChar, CBasicPacket data)
 {
-    uint8 Quantity = RBUFB(data, 0x08);
-    uint8 SlotID = RBUFB(data, 0x04);
+    uint8 Quantity = data.ref<uint8>(0x08);
+    uint8 SlotID = data.ref<uint8>(0x04);
 
     CCharEntity* PTarget = (CCharEntity*)PChar->GetEntity(PChar->BazaarID.targid, TYPE_PC);
 
@@ -5352,12 +5519,12 @@ void SmallPacket0x106(map_session_data_t* session, CCharEntity* PChar, CBasicPac
         uint32 Price1 = (PBazaarItem->getCharPrice() * Quantity);
         uint32 Price2 = (PChar->loc.zone->GetTax() * Price1) / 10000 + Price1;
 
-        charutils::UpdateItem(PChar, LOC_INVENTORY, 0, -Price2);
+        charutils::UpdateItem(PChar, LOC_INVENTORY, 0, -(int32)Price2);
         charutils::UpdateItem(PTarget, LOC_INVENTORY, 0, Price1);
 
         PChar->pushPacket(new CBazaarPurchasePacket(PTarget, true));
 
-        PTarget->pushPacket(new CBazaarConfirmationPacket(PChar, SlotID, Quantity));
+        PTarget->pushPacket(new CBazaarConfirmationPacket(PChar, PItem));
 
         charutils::UpdateItem(PTarget, LOC_INVENTORY, SlotID, -Quantity);
 
@@ -5437,12 +5604,12 @@ void SmallPacket0x109(map_session_data_t* session, CCharEntity* PChar, CBasicPac
 
 void SmallPacket0x10A(map_session_data_t* session, CCharEntity* PChar, CBasicPacket data)
 {
-    uint8  slotID = RBUFB(data, (0x04));
-    uint32 price = RBUFL(data, (0x08));
+    uint8  slotID = data.ref<uint8>(0x04);
+    uint32 price = data.ref<uint32>(0x08);
 
     CItem* PItem = PChar->getStorage(LOC_INVENTORY)->GetItem(slotID);
 
-    if ((PItem != nullptr) && !(PItem->getFlag() & ITEM_FLAG_EX))
+    if ((PItem != nullptr) && !(PItem->getFlag() & ITEM_FLAG_EX) && (!PItem->isSubType(ITEM_LOCKED) || PItem->getCharPrice() != 0))
     {
         Sql_Query(SqlHandle, "UPDATE char_inventory SET bazaar = %u WHERE charid = %u AND location = 0 AND slot = %u;", price, PChar->id, slotID);
 
@@ -5492,6 +5659,30 @@ void SmallPacket0x10F(map_session_data_t* session, CCharEntity* PChar, CBasicPac
 }
 
 /************************************************************************
+*                                                                       *
+*  Fishing (New)                                                   *
+*                                                                       *
+************************************************************************/
+
+void SmallPacket0x110(map_session_data_t* session, CCharEntity* PChar, CBasicPacket data)
+{
+    //PrintPacket(data);
+    if (PChar->animation != ANIMATION_FISHING_START)
+        return;
+
+    //uint32 charid = data.ref<uint32>(0x04);
+    uint16 stamina = data.ref<uint16>(0x08);
+    //uint16 ukn1 = data.ref<uint16>(0x0A); // Seems to always be zero with basic fishing, skill not high enough to test legendary fish.
+    //uint16 targetid = data.ref<uint16>(0x0C);
+    uint8 action = data.ref<uint8>(0x0E);
+    //uint8 ukn2 = data.ref<uint8>(0x0F);
+    uint32 special = data.ref<uint32>(0x10);
+    fishingutils::FishingAction(PChar, (FISHACTION)action, stamina, special);
+
+    return;
+}
+
+/************************************************************************
 *                                                                        *
 *  Lock Style Request                                                   *
 *                                                                        *
@@ -5499,7 +5690,7 @@ void SmallPacket0x10F(map_session_data_t* session, CCharEntity* PChar, CBasicPac
 
 void SmallPacket0x111(map_session_data_t* session, CCharEntity* PChar, CBasicPacket data)
 {
-    charutils::SetStyleLock(PChar, RBUFB(data, (0x04)));
+    charutils::SetStyleLock(PChar, data.ref<uint8>(0x04));
     PChar->pushPacket(new CCharAppearancePacket(PChar));
     return;
 }
@@ -5625,6 +5816,7 @@ void PacketParserInitialize()
     PacketSize[0x10A] = 0x06; PacketParser[0x10A] = &SmallPacket0x10A;
     PacketSize[0x10B] = 0x00; PacketParser[0x10B] = &SmallPacket0x10B;
     PacketSize[0x10F] = 0x02; PacketParser[0x10F] = &SmallPacket0x10F;
+    PacketSize[0x110] = 0x0A; PacketParser[0x110] = &SmallPacket0x110;
     PacketSize[0x111] = 0x00; PacketParser[0x111] = &SmallPacket0x111; // Lock Style Request
     PacketSize[0x112] = 0x00; PacketParser[0x112] = &SmallPacket0xFFF;
     PacketSize[0x114] = 0x00; PacketParser[0x114] = &SmallPacket0xFFF;

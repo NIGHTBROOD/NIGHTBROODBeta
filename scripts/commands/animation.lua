@@ -7,11 +7,12 @@ require("scripts/globals/status");
 
 cmdprops =
 {
-    permission = 1,
-    parameters = "s"
+    permission = 5,
+    parameters = "ss"
 };
 
-function onTrigger(player, animationId)
+function onTrigger(player, animationId, target)
+    local targ = GetPlayerByName( target );
 
     animationId = tonumber(animationId) or _G[animationId];
     
@@ -19,6 +20,11 @@ function onTrigger(player, animationId)
         player:PrintToPlayer( string.format( "Current player animation: %d", player:getAnimation() ) );
         return;
     end
-
-    player:setAnimation( animationId );
+    
+    if (targ == nil) then
+        player:setAnimation( animationId );
+        return;
+    else
+        targ:setAnimation( animationId );
+    end
 end

@@ -5,7 +5,7 @@
 
 cmdprops =
 {
-    permission = 1,
+    permission = 3,
     parameters = "is"
 };
 
@@ -30,4 +30,9 @@ function onTrigger(player, amount, target)
     end
 
     targ:setMerits(amount);
+        printf ( "GM: %s",player:getName() );
+        printf ( "Command: setmerits" );
+        printf ( "Amount: %i ",amount );
+        printf ( "Target: %s \n",targ:getName() );
+	targ:PrintToPlayer(string.format("You were awarded %i merits!", amount));
 end;

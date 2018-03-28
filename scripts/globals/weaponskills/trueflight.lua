@@ -33,8 +33,11 @@ function onUseWeaponSkill(player, target, wsID, tp, primary, action, taChar)
     params.includemab = true;
 
     if (USE_ADOULIN_WEAPON_SKILL_CHANGES == true) then
-        params.ftp100 = 3.8906; params.ftp200 = 6.3906; params.ftp300 = 9.3906;
-        params.agi_wsc = 1.0;
+        params.ftp100 = 7; params.ftp200 = 10; params.ftp300 = 14;
+        params.agi_wsc = 1;
+		params.ele = ELE_LIGHT;
+		params.skill = SKILL_MRK;
+		params.includemab = true;
     end
 
     local damage, tpHits, extraHits = doMagicWeaponskill(player, target, wsID, tp, primary, action, params);

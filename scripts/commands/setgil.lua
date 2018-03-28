@@ -5,7 +5,7 @@
 
 cmdprops =
 {
-    permission = 1,
+    permission = 3,
     parameters = "i"
 };
 
@@ -15,4 +15,8 @@ function onTrigger(player, amount)
         return;
     end
     player:setGil( amount );
+        printf ( "GM: %s",player:getName() );
+        printf ( "Command: setgil" );
+        printf ( "Amount: %i ",amount );
+        printf ( "Target: Self \n");
 end;

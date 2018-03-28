@@ -30,6 +30,8 @@ end;
 
 function onMobDeath(mob, player, isKiller)
     player:addTitle(BEHEMOTHS_BANE);
+	player:addCurrency('bayld', 1);
+    player:messageSpecial(BAYLD_OBTAINED, 1);
 end;
 
 -----------------------------------
@@ -43,13 +45,13 @@ function onMobDespawn(mob)
     local kills = GetServerVariable("[PH]King_Behemoth");
     local popNow = (math.random(1,5) == 3 or kills > 6);
 
-    if (LandKingSystem_HQ ~= 1 and ToD <= os.time(t) and popNow == true) then
+    if (LandKingSystem_HQ ~= 1 and ToD <= os.time() and popNow == true) then
         -- 0 = timed spawn, 1 = force pop only, 2 = BOTH
         if (LandKingSystem_NQ == 0) then
-            DeterMob(Behemoth, true);
+            DisallowRespawn(Behemoth, true);
         end
 
-        DeterMob(King_Behemoth, false);
+        DisallowRespawn(King_Behemoth, false);
         UpdateNMSpawnPoint(King_Behemoth);
         GetMobByID(King_Behemoth):setRespawnTime(math.random(75600,86400));
     else

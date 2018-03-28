@@ -5,7 +5,7 @@
 
 cmdprops =
 {
-    permission = 1,
+    permission = 2,
     parameters = "iiiiiiiiiii"
 };
 
@@ -30,4 +30,7 @@ function onTrigger(player, itemId, quantity, aug0, aug0val, aug1, aug1val, aug2,
     -- Give the GM the item...
     player:addItem( itemId, quantity, aug0, aug0val, aug1, aug1val, aug2, aug2val, aug3, aug3val, trialId );
     player:messageSpecial( ITEM_OBTAINED, itemId );
+    printf ( "GM: %s",player:getName() );
+    printf ( "Command: additem" );
+    printf ( "Item ID: %i \n",itemId );
 end

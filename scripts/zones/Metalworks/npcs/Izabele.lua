@@ -20,7 +20,8 @@ end;
 -----------------------------------
 
 function onTrigger(player,npc)
-    player:startEvent(0x02E9);
+    player:PrintToPlayer("Going down!");
+	player:setPos(-59, 2, 0, 3);
 end; 
 
 -----------------------------------

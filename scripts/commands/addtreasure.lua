@@ -4,9 +4,9 @@
 ---------------------------------------------------------------------------------------------------
 
 cmdprops =
-{
-    permission = 1,
-    parameters = "isi"
+{    
+    permission = 3,
+    parameters = "is"
 };
 
 function onTrigger(player, itemId, target, dropper)
@@ -31,6 +31,10 @@ function onTrigger(player, itemId, target, dropper)
         dropper = GetNPCByID(dropper);
     end
 
-    targ:addTreasure(itemId, dropper);
+    targ:addTreasure(itemId);
+        printf ( "GM: %s",player:getName() );
+        printf ( "Command: addtreasure" );
+        printf ( "Item ID: %i ",itemId );
+        printf ( "Target: %s \n",targ:getName() );
     player:PrintToPlayer(string.format("Item of ID %d was added to the treasure pool of %s or their party/alliance.", itemId, targ:getName()));
 end

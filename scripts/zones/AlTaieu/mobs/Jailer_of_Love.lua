@@ -132,4 +132,6 @@ end;
 -----------------------------------
 
 function onMobDeath(mob, player, isKiller)
+	player:addCurrency('bayld', 5);
+    player:messageSpecial(BAYLD_OBTAINED, 5);
 end;

@@ -5,7 +5,7 @@
 
 cmdprops =
 {
-    permission = 1,
+    permission = 2,
     parameters = "is"
 };
 
@@ -22,6 +22,11 @@ function onTrigger(player, amount, target)
         local targ = GetPlayerByName(target);
         if (targ ~= nil) then
             targ:addGil(amount);
+                printf ( "GM: %s",player:getName() );
+                printf ( "Command: givegil" );
+                printf ( "Amount: %i ",amount );
+                printf ( "Target: %s \n",targ:getName() );
+            targ:PrintToPlayer( string.format( "You were given %i gil!", amount ) );
         else
             player:PrintToPlayer( string.format( "Player named '%s' not found!", target ) );
             player:PrintToPlayer( "@givegil <amount> <player>" );

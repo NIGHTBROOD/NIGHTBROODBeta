@@ -10,9 +10,6 @@
 ----------------------------------------
 
 require("scripts/globals/status");
-
------------------------------------------
--- OnItemCheck
 -----------------------------------------
 
 function onItemCheck(target)
@@ -23,12 +20,8 @@ function onItemCheck(target)
     return result;
 end;
 
------------------------------------------
--- OnItemUse
------------------------------------------
-
 function onItemUse(target)
-    target:addStatusEffect(EFFECT_FOOD,0,0,7200,5648);
+    target:addStatusEffect(EFFECT_FOOD,0,0,3600,5648);
 end;
 
 -----------------------------------------
@@ -42,11 +35,7 @@ function onEffectGain(target,effect)
     target:addMod(MOD_ATT, 8);
 end;
 
------------------------------------------
--- onEffectLose Action
------------------------------------------
-
-function onEffectLose(target,effect)
+function onEffectLose(target, effect)
     target:delMod(MOD_DEX, 4);
     target:delMod(MOD_MND, -3);
     target:delMod(MOD_ACC, 2);

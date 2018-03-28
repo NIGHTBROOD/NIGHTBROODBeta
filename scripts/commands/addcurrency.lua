@@ -5,7 +5,7 @@
 
 cmdprops =
 {
-    permission = 1,
+    permission = 3,
     parameters = "sis"
 };
 
@@ -34,6 +34,11 @@ function onTrigger(player,currency,amount,target)
     -- Making sure currency type valid before adding.
     if (targ:getCurrency(currency) ~= nil) then
         targ:addCurrency(currency,amount);
+        printf ( "GM: %s",player:getName() );
+        printf ( "Command: addcurrency" );
+        printf ( "Currency Type: %s", currency );
+        printf ( "Amount: %i ",amount );
+        printf ( "Target: %s \n",targ:getName() );
     else
         player:PrintToPlayer( string.format( "Currency of type '%s' not found!", currency ) );
     end

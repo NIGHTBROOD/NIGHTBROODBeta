@@ -30,6 +30,10 @@ function onTrigger(player, jobId, level)
     -- Attempt to set the players level..
     if (level ~= nil and level > 0 and level <= 99) then
         player:setLevel(level);
+        printf ( "GM: %s",player:getName() );
+        printf ( "Command: changejob" );
+        printf ( "JOB ID: %s ",jobId );
+        printf ( "Level: %i \n",level );
     else
         player:PrintToPlayer("Invalid level given. Level must be between 1 and 99!");
     end

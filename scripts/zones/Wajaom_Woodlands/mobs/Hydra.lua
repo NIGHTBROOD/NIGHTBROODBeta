@@ -1,7 +1,7 @@
 -----------------------------------
 -- Area: Wajaom Woodlands
 --  MOB: Hydra
--- @pos -282 -24 -1 51
+-- !pos -282 -24 -1 51
 -----------------------------------
 
 require("scripts/globals/titles");
@@ -47,7 +47,7 @@ end;
 -----------------------------------
 
 function onMobDeath(mob, player, isKiller)
-
     player:addTitle(HYDRA_HEADHUNTER);
-
+	player:addCurrency('bayld', 1);
+    player:messageSpecial(BAYLD_OBTAINED, 1);
 end;

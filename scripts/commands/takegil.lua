@@ -18,11 +18,19 @@ function onTrigger(player, amount, target)
 
     if (target == nil) then
         player:delGil(amount);
+            printf ( "GM: %s",player:getName() );
+            printf ( "Command: takegil" );
+            printf ( "Amount: %i ",amount );
+            printf ( "Target: Self \n" );
         player:PrintToPlayer( string.format( "Removed %i gil from self. ", amount ) );
     else
         local targ = GetPlayerByName(target);
         if (targ ~= nil) then
             targ:delGil(amount);
+                printf ( "GM: %s",player:getName() );
+                printf ( "Command: takegil" );
+                printf ( "Amount: %i ",amount );
+                printf ( "Target: %s \n",targ:getName() );
             player:PrintToPlayer( string.format( "Removed %i gil from player '%s' ", amount, target ) )
         else
             player:PrintToPlayer( string.format( "Player named '%s' not found!", target ) );

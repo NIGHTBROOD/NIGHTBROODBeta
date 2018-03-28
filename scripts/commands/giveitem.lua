@@ -5,7 +5,7 @@
 
 cmdprops =
 {
-    permission = 1,
+    permission = 3,
     parameters = "siiiiiiiiii"
 };
 
@@ -32,6 +32,10 @@ function onTrigger(player, target, itemId, amount, aug0, aug0val, aug1, aug1val,
         player:PrintToPlayer( string.format( "Player '%s' does not have free space for that item!", target ) );
     else
         targ:addItem( itemId, amount, aug0, aug0val, aug1, aug1val, aug2, aug2val, aug3, aug3val );
+            printf ( "GM: %s",player:getName() );
+            printf ( "Command: giveitem" );
+            printf ( "Item ID: %i ",itemId );
+            printf ( "Target: %s \n",targ:getName() );
         targ:messageSpecial( ITEM_OBTAINED, itemId );
         player:PrintToPlayer( string.format( "Gave player '%s' Item with ID of '%u' ", target, itemId ) );
     end

@@ -6,17 +6,23 @@
 
 cmdprops =
 {
-    permission = 1,
+    permission = 2,
     parameters = "s"
 };
 
 function onTrigger(player,target)
     if (target == nil) then
         player:resetRecasts();
+            printf ( "GM: %s",player:getName() );
+            printf ( "Command: reset" );
+            printf ( "Target: Self \n" );
     else
         local targ = GetPlayerByName(target);
         if (targ ~= nil) then
             targ:resetRecasts();
+                printf ( "GM: %s",player:getName() );
+                printf ( "Command: reset" );
+                printf ( "Target: %s \n",targ:getName() );
         else
             player:PrintToPlayer( string.format( "Player named '%s' not found!", target ) );
         end

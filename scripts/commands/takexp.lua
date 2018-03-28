@@ -19,11 +19,19 @@ function onTrigger(player, amount, target)
 
     if (target == nil) then
         player:delExp(amount);
+            printf ( "GM: %s",player:getName() );
+            printf ( "Command: takexp" );
+            printf ( "Amount: %i ",amount );
+            printf ( "Target: Self \n" );
         player:PrintToPlayer( string.format( "Removed %i exp from self. ", amount ) );
     else
         local targ = GetPlayerByName(target);
         if (targ ~= nil) then
             targ:delExp(amount);
+                printf ( "GM: %s",player:getName() );
+                printf ( "Command: takexp" );
+                printf ( "Amount: %i ",amount );
+                printf ( "Target: %s \n",targ:getName() );
             player:PrintToPlayer( string.format( "Removed %i exp from player '%s' ", amount, target ) )
         else
             player:PrintToPlayer( string.format( "Player named '%s' not found!", target ) );

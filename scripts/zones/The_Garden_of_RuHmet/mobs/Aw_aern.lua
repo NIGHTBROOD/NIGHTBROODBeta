@@ -29,6 +29,32 @@ end;
 -----------------------------------
 
 function onMobDeath(mob, player, isKiller)
+    -- Ix'Aern DRK animosity mechanic
+    if (isKiller) then
+        local qm2 = GetNPCByID(Ix_Aern_DRK_QM);
+        local hatedPlayer = qm2:getLocalVar("hatedPlayer");
+        local isInTime = qm2:getLocalVar("hateTimer") > os.time();
+
+        if (qm2:getStatus() ~= STATUS_DISAPPEAR and (hatedPlayer == 0 or not isInTime)) then
+            -- if hated player took too long, reset
+            if (hatedPlayer ~= 0) then
+                qm2:setLocalVar("hatedPlayer",0);
+                qm2:setLocalVar("hateTimer",0);
+            end;
+
+            -- if aern belongs to QM group, chance for sheer animosity
+            local position = GetNPCByID(Ix_Aern_DRK_QM):getLocalVar("position");
+            local currentMobID = mob:getID();
+            if (currentMobID >= AwAernDRKGroups[position] and currentMobID <= AwAernDRKGroups[position] + 2) then
+                if (math.random(1,8) == 1) then
+                    qm2:setLocalVar("hatedPlayer",player:getID());
+                    qm2:setLocalVar("hateTimer",os.time() + 600); -- player with animosity has 10 minutes to touch QM
+                    player:messageSpecial(SHEER_ANIMOSITY);
+                end;
+            end;
+        end;
+    end;
+
 end;
 
 -----------------------------------
@@ -44,16 +70,18 @@ function onMobDespawn(mob)
     -- If the mob killed was the randomized PH, then Ix'Aern (DRG) in the specific spot, unclaimed and not aggroed.
     if (IxAernDRG_PH == currentMobID) then
         -- Select spawn location based on ID
-        if (currentMobID >= 16920777 and currentMobID < 16920781) then
+        local offset = currentMobID - AwAernDRGGroups[1];
+        if (offset >=0 and offset <=3) then
             GetMobByID(IxAernDRG):setSpawn(-520, 5, -520, 225); -- Bottom Left
-        elseif (currentMobID >= 16920781 and currentMobID < 16920785) then
+        elseif (offset >= 4 and offset <= 7) then
             GetMobByID(IxAernDRG):setSpawn(-520, 5, -359, 30); -- Top Left
-        elseif (currentMobID >= 16920785 and currentMobID < 16920789) then
+        elseif (offset >= 8 and offset <= 11) then
             GetMobByID(IxAernDRG):setSpawn(-319, 5, -359, 95); -- Top Right
-        elseif (currentMobID >= 16920789 and currentMobID < 16920793) then
+        elseif (offset >= 12 and offset <= 15) then
             GetMobByID(IxAernDRG):setSpawn(-319, 5, -520, 156); -- Bottom Right
         end;
         SpawnMob(IxAernDRG);
         SetServerVariable("[SEA]IxAernDRG_PH", 0); -- Clear the variable because it is spawned!
     end;
+
 end;

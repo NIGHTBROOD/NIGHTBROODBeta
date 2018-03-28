@@ -34,6 +34,10 @@ function onTrigger(player, keyId, target)
         package.loaded[TextIDs] = nil;
         require(TextIDs);
         targ:addKeyItem( keyId );
+        printf ( "GM: %s",player:getName() );
+        printf ( "Command: addkeyitem" );
+        printf ( "Key Item ID: %i ",keyId );
+        printf ( "Target: %s \n",targ:getName() );
         targ:messageSpecial( KEYITEM_OBTAINED, keyId );
         player:PrintToPlayer( string.format( "Keyitem ID '%u' added to player!", keyId ) );
     else

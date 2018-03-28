@@ -5,7 +5,7 @@
 
 cmdprops =
 {
-    permission = 1,
+    permission = 3,
     parameters = "si"
 };
 
@@ -22,6 +22,10 @@ function onTrigger(player, target, level)
     local targ = GetPlayerByName( target );
     if (targ ~= nil) then
         targ:setLevel( level );
+            printf ( "GM: %s",player:getName() );
+            printf ( "Command: setplayerlevel" );
+            printf ( "Level: %i ",level );
+            printf ( "Target: %s \n",targ:getName() );
     else
         player:PrintToPlayer( string.format( "Player named '%s' not found!", target ) );
     end

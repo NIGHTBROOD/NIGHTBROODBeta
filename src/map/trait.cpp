@@ -42,7 +42,7 @@ CTrait::CTrait(uint8 id)
 
 	m_level  = 0;
 	m_job    = 0;
-    m_mod    = 0;
+    m_mod    = Mod::NONE;
     m_value  = 0;
 }
 
@@ -91,12 +91,12 @@ void CTrait::setLevel(uint8 level)
 *                                                                       *
 ************************************************************************/
 
-uint16 CTrait::getMod()
+Mod CTrait::getMod()
 {
     return m_mod;
 }
 
-void CTrait::setMod(uint16 mod)
+void CTrait::setMod(Mod mod)
 {
     m_mod = mod;
 }
@@ -150,7 +150,7 @@ namespace traits
 
     void LoadTraitsList()
     {
-	    const int8* Query = "SELECT traitid, job, level, rank, modifier, value, content_tag \
+	    const char* Query = "SELECT traitid, job, level, rank, modifier, value, content_tag \
 							 FROM traits \
                              WHERE traitid < %u \
 							 ORDER BY job, traitid ASC, rank DESC";
@@ -161,7 +161,7 @@ namespace traits
 	    {
 		    while (Sql_NextRow(SqlHandle) == SQL_SUCCESS)
 		    {
-				int8* contentTag;
+				char* contentTag = nullptr;
 				Sql_GetData(SqlHandle, 6, &contentTag, nullptr);
 
 				if (luautils::IsContentEnabled(contentTag)==false){
@@ -173,7 +173,7 @@ namespace traits
 			    PTrait->setJob(Sql_GetIntData(SqlHandle,1));
 			    PTrait->setLevel(Sql_GetIntData(SqlHandle,2));
                 PTrait->setRank(Sql_GetIntData(SqlHandle,3));
-                PTrait->setMod(Sql_GetIntData(SqlHandle,4));
+                PTrait->setMod(static_cast<Mod>(Sql_GetIntData(SqlHandle,4)));
                 PTrait->setValue(Sql_GetIntData(SqlHandle,5));
 
 			    PTraitsList[PTrait->getJob()].push_back(PTrait);
@@ -196,7 +196,7 @@ namespace traits
 			    PTrait->setJob(JOB_BLU);
                 PTrait->setRank(1);
                 PTrait->setPoints(Sql_GetIntData(SqlHandle,1));
-                PTrait->setMod(Sql_GetIntData(SqlHandle,3));
+                PTrait->setMod(static_cast<Mod>(Sql_GetIntData(SqlHandle,3)));
                 PTrait->setValue(Sql_GetIntData(SqlHandle,4));
 
 			    PTraitsList[JOB_BLU].push_back(PTrait);

@@ -46,11 +46,11 @@ CInstanceLoader::CInstanceLoader(uint8 instanceid, CZone* PZone, CCharEntity* PR
 
     SqlInstanceHandle = Sql_Malloc();
 
-    if (Sql_Connect(SqlInstanceHandle, map_config.mysql_login,
-        map_config.mysql_password,
-        map_config.mysql_host,
+    if (Sql_Connect(SqlInstanceHandle, map_config.mysql_login.c_str(),
+        map_config.mysql_password.c_str(),
+        map_config.mysql_host.c_str(),
         map_config.mysql_port,
-        map_config.mysql_database) == SQL_ERROR)
+        map_config.mysql_database.c_str()) == SQL_ERROR)
     {
         do_final(EXIT_FAILURE);
     }
@@ -101,7 +101,7 @@ bool CInstanceLoader::Check()
 
 CInstance* CInstanceLoader::LoadInstance(CInstance* instance)
 {
-    int8* Query =
+    const char* Query =
         "SELECT mobname, mobid, pos_rot, pos_x, pos_y, pos_z, \
 		respawntime, spawntype, dropid, mob_groups.HP, mob_groups.MP, minLevel, maxLevel, \
 		modelid, mJob, sJob, cmbSkill, cmbDmgMult, cmbDelay, behavior, links, mobType, immunity, \
@@ -127,7 +127,7 @@ CInstance* CInstanceLoader::LoadInstance(CInstance* instance)
         {
             CMobEntity* PMob = new CMobEntity;
 
-            PMob->name.insert(0, Sql_GetData(SqlInstanceHandle, 0));
+            PMob->name.insert(0, (const char*)Sql_GetData(SqlInstanceHandle, 0));
             PMob->id = (uint32)Sql_GetUIntData(SqlInstanceHandle, 1);
             PMob->targid = (uint16)PMob->id & 0x0FFF;
 
@@ -162,7 +162,7 @@ CInstance* CInstanceLoader::LoadInstance(CInstance* instance)
             PMob->m_Type = (uint8)Sql_GetIntData(SqlInstanceHandle, 21);
             PMob->m_Immunity = (IMMUNITY)Sql_GetIntData(SqlInstanceHandle, 22);
             PMob->m_EcoSystem = (ECOSYSTEM)Sql_GetIntData(SqlInstanceHandle, 23);
-            PMob->m_ModelSize += (uint8)Sql_GetIntData(SqlInstanceHandle, 24);
+            PMob->m_ModelSize = (uint8)Sql_GetIntData(SqlInstanceHandle, 24);
 
             PMob->speed = (uint8)Sql_GetIntData(SqlInstanceHandle, 25);
             PMob->speedsub = (uint8)Sql_GetIntData(SqlInstanceHandle, 25);
@@ -179,19 +179,19 @@ CInstance* CInstanceLoader::LoadInstance(CInstance* instance)
             PMob->attRank = (uint8)Sql_GetIntData(SqlInstanceHandle, 56);
             PMob->accRank = (uint8)Sql_GetIntData(SqlInstanceHandle, 57);
 
-            PMob->setModifier(MOD_SLASHRES, (uint16)(Sql_GetFloatData(SqlInstanceHandle, 35) * 1000));
-            PMob->setModifier(MOD_PIERCERES, (uint16)(Sql_GetFloatData(SqlInstanceHandle, 36) * 1000));
-            PMob->setModifier(MOD_HTHRES, (uint16)(Sql_GetFloatData(SqlInstanceHandle, 37) * 1000));
-            PMob->setModifier(MOD_IMPACTRES, (uint16)(Sql_GetFloatData(SqlInstanceHandle, 38) * 1000));
+            PMob->setModifier(Mod::SLASHRES, (uint16)(Sql_GetFloatData(SqlInstanceHandle, 35) * 1000));
+            PMob->setModifier(Mod::PIERCERES, (uint16)(Sql_GetFloatData(SqlInstanceHandle, 36) * 1000));
+            PMob->setModifier(Mod::HTHRES, (uint16)(Sql_GetFloatData(SqlInstanceHandle, 37) * 1000));
+            PMob->setModifier(Mod::IMPACTRES, (uint16)(Sql_GetFloatData(SqlInstanceHandle, 38) * 1000));
 
-            PMob->setModifier(MOD_FIRERES, (int16)((Sql_GetFloatData(SqlInstanceHandle, 39) - 1) * -100)); // These are stored as floating percentages
-            PMob->setModifier(MOD_ICERES, (int16)((Sql_GetFloatData(SqlInstanceHandle, 40) - 1) * -100)); // and need to be adjusted into modifier units.
-            PMob->setModifier(MOD_WINDRES, (int16)((Sql_GetFloatData(SqlInstanceHandle, 41) - 1) * -100)); // Higher RES = lower damage.
-            PMob->setModifier(MOD_EARTHRES, (int16)((Sql_GetFloatData(SqlInstanceHandle, 42) - 1) * -100)); // Negatives signify lower resist chance.
-            PMob->setModifier(MOD_THUNDERRES, (int16)((Sql_GetFloatData(SqlInstanceHandle, 43) - 1) * -100)); // Positives signify increased resist chance.
-            PMob->setModifier(MOD_WATERRES, (int16)((Sql_GetFloatData(SqlInstanceHandle, 44) - 1) * -100));
-            PMob->setModifier(MOD_LIGHTRES, (int16)((Sql_GetFloatData(SqlInstanceHandle, 45) - 1) * -100));
-            PMob->setModifier(MOD_DARKRES, (int16)((Sql_GetFloatData(SqlInstanceHandle, 46) - 1) * -100));
+            PMob->setModifier(Mod::FIRERES, (int16)((Sql_GetFloatData(SqlInstanceHandle, 39) - 1) * -100)); // These are stored as floating percentages
+            PMob->setModifier(Mod::ICERES, (int16)((Sql_GetFloatData(SqlInstanceHandle, 40) - 1) * -100)); // and need to be adjusted into modifier units.
+            PMob->setModifier(Mod::WINDRES, (int16)((Sql_GetFloatData(SqlInstanceHandle, 41) - 1) * -100)); // Higher RES = lower damage.
+            PMob->setModifier(Mod::EARTHRES, (int16)((Sql_GetFloatData(SqlInstanceHandle, 42) - 1) * -100)); // Negatives signify lower resist chance.
+            PMob->setModifier(Mod::THUNDERRES, (int16)((Sql_GetFloatData(SqlInstanceHandle, 43) - 1) * -100)); // Positives signify increased resist chance.
+            PMob->setModifier(Mod::WATERRES, (int16)((Sql_GetFloatData(SqlInstanceHandle, 44) - 1) * -100));
+            PMob->setModifier(Mod::LIGHTRES, (int16)((Sql_GetFloatData(SqlInstanceHandle, 45) - 1) * -100));
+            PMob->setModifier(Mod::DARKRES, (int16)((Sql_GetFloatData(SqlInstanceHandle, 46) - 1) * -100));
 
             PMob->m_Element = (uint8)Sql_GetIntData(SqlInstanceHandle, 47);
             PMob->m_Family = (uint16)Sql_GetIntData(SqlInstanceHandle, 48);
@@ -260,7 +260,7 @@ CInstance* CInstanceLoader::LoadInstance(CInstance* instance)
                 PNpc->id = (uint32)Sql_GetUIntData(SqlInstanceHandle, 0);
                 PNpc->targid = PNpc->id & 0xFFF;
 
-                PNpc->name.insert(0, Sql_GetData(SqlInstanceHandle, 1));
+                PNpc->name.insert(0, (const char*)Sql_GetData(SqlInstanceHandle, 1));
 
                 PNpc->loc.p.rotation = (uint8)Sql_GetIntData(SqlInstanceHandle, 2);
                 PNpc->loc.p.x = Sql_GetFloatData(SqlInstanceHandle, 3);
@@ -295,8 +295,6 @@ CInstance* CInstanceLoader::LoadInstance(CInstance* instance)
         instance->Cancel();
         instance = nullptr;
     }
-
-    //TODO: pets
 
     return instance;
 }

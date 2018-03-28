@@ -1,7 +1,7 @@
 -----------------------------------
 -- Area: Caedarva Mire
 --  MOB: Tyger
--- @pos -766 -12 632
+-- !pos -766 -12 632
 -- Spawn with Singed Buffalo: @additem 2593
 -----------------------------------
 
@@ -23,4 +23,6 @@ end;
 -----------------------------------
 
 function onMobDeath(mob, player, isKiller)
+	player:addCurrency('bayld', 5);
+    player:messageSpecial(BAYLD_OBTAINED, 5);
 end;

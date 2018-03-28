@@ -2,7 +2,7 @@
 -- Area: Aht Urhgan Whitegate
 --  NPC: Naja Salaheem
 -- Type: Standard NPC
--- @pos 22.700 -8.804 -45.591 50
+-- !pos 22.700 -8.804 -45.591 50
 -----------------------------------
 package.loaded["scripts/zones/Aht_Urhgan_Whitegate/TextIDs"] = nil;
 
@@ -25,15 +25,13 @@ end;
 -----------------------------------
 function onTrigger(player,npc)
 
-    local TOAUM3_DAY = player:getVar("TOAUM3_STARTDAY");
-    local realday = tonumber(os.date("%j")); -- %M for next minute, %j for next day
     local needToZone = player:needToZone();
 
     if (player:getCurrentMission(TOAU) == IMMORTAL_SENTRIES and player:getVar("AhtUrganStatus") == 1) then
         player:startEvent(3002,0,0,0,0,0,0,0,0,0);
     elseif (player:getCurrentMission(TOAU) == PRESIDENT_SALAHEEM and player:getVar("AhtUrganStatus") == 1) then
         player:startEvent(73,0,0,0,0,0,0,0,0,0);
-    elseif (player:getCurrentMission(TOAU) == PRESIDENT_SALAHEEM and player:getVar("AhtUrganStatus") == 2 and TOAUM3_DAY ~= realday and needToZone == false) then
+    elseif (player:getCurrentMission(TOAU) == PRESIDENT_SALAHEEM and player:getVar("AhtUrganStatus") == 2 and needToZone == false) then
         player:startEvent(3020,0,0,0,0,0,0,0,0,0);
     elseif (player:getCurrentMission(TOAU) == KNIGHT_OF_GOLD and player:getVar("AhtUrganStatus") == 0) then
         player:startEvent(3021,0,0,0,0,0,0,0,0,0);
@@ -43,7 +41,7 @@ function onTrigger(player,npc)
         player:startEvent(3051,0,0,0,0,0,0,0,0,0);
     elseif (player:getCurrentMission(TOAU) == ASTRAL_WAVES) then
         player:startEvent(3052,0,0,0,0,0,0,0,0,0);
-    elseif (player:getCurrentMission(TOAU) == IMPERIAL_SCHEMES and player:getVar("TOAUM11_STARTDAY") ~= VanadielDayOfTheYear() and needToZone == false) then
+    elseif (player:getCurrentMission(TOAU) == IMPERIAL_SCHEMES and needToZone == false) then
         player:startEvent(3070,0,0,0,0,0,0,0,0,0);
     elseif (player:getCurrentMission(TOAU) == ROYAL_PUPPETEER) then
         player:startEvent(3071,0,0,0,0,0,0,0,0,0);
@@ -71,16 +69,15 @@ function onTrigger(player,npc)
                 player:startEvent(3077,0,0,0,0,0,0,0,0,0);
             end
         end
-    elseif (player:getCurrentMission(TOAU) == PASSING_GLORY and player:getVar("TOAUM18_STARTDAY") ~= VanadielDayOfTheYear() and needToZone == false) then
+    elseif (player:getCurrentMission(TOAU) == PASSING_GLORY and needToZone == false) then
         player:startEvent(3090,0,0,0,0,0,0,0,0,0);
     elseif (player:getCurrentMission(TOAU) == IN_THE_BLOOD) then
         player:startEvent(3113,0,0,0,0,0,0,0,0,0);
-    elseif (player:getCurrentMission(TOAU) == SENTINELS_HONOR) then
-        if(player:getVar("TOAUM18_STARTDAY") ~= VanadielDayOfTheYear() and needToZone == false) then
+    elseif (player:getCurrentMission(TOAU) == SENTINELS_HONOR and needToZone == false) then
             player:startEvent(3130,0,0,0,0,0,0,0,0,0);
         else
             player:startEvent(3120,0,0,0,0,0,0,0,0,0);
-        end
+			end
     elseif (player:getCurrentMission(TOAU) == FANGS_OF_THE_LION) then
         player:startEvent(3138,0,0,0,0,0,0,0,0,0);
     elseif (player:getCurrentMission(TOAU) == NASHMEIRAS_PLEA and player:hasKeyItem(MYTHRIL_MIRROR) == false) then
@@ -117,8 +114,7 @@ function onEventFinish(player,csid,option)
     -- printf("CSID: %u",csid);
     -- printf("RESULT: %u",option);
     if (csid == 73) then
-        player:setVar("AhtUrganStatus",2);
-        player:setVar("TOAUM3_DAY", os.date("%j")); -- %M for next minute, %j for next day
+        player:setVar("AhtUrganStatus", 2);
     elseif (csid == 3002) then
         player:setVar("AhtUrganStatus",0);
         player:completeMission(TOAU,IMMORTAL_SENTRIES);
@@ -131,7 +127,6 @@ function onEventFinish(player,csid,option)
         player:setVar("AhtUrganStatus",0);
         player:completeMission(TOAU,PRESIDENT_SALAHEEM);
         player:addMission(TOAU,KNIGHT_OF_GOLD);
-        player:setVar("TOAUM3_DAY", 0);
     elseif (csid == 3028) then
         if (player:getFreeSlotsCount() == 0) then
             player:messageSpecial(ITEM_CANNOT_BE_OBTAINED,2185);
@@ -146,11 +141,9 @@ function onEventFinish(player,csid,option)
     elseif (csid == 3052) then
         player:completeMission(TOAU,ASTRAL_WAVES);
         player:needToZone(true);
-        player:setVar("TOAUM11_STARTDAY", VanadielDayOfTheYear());
         player:addMission(TOAU,IMPERIAL_SCHEMES);
     elseif (csid == 3070) then
         player:completeMission(TOAU,IMPERIAL_SCHEMES);
-        player:setVar("TOAUM11_STARTDAY", 0);
         player:addMission(TOAU,ROYAL_PUPPETEER);
     elseif (csid == 3072) then
         player:completeMission(TOAU,THE_DOLPHIN_CREST);
@@ -164,18 +157,15 @@ function onEventFinish(player,csid,option)
         end
     elseif (csid == 3090) then
         player:completeMission(TOAU,PASSING_GLORY);
-        player:setVar("TOAUM18_STARTDAY", 0);
         player:addMission(TOAU,SWEETS_FOR_THE_SOUL);
     elseif (csid == 3113) then
         player:completeMission(TOAU,IN_THE_BLOOD);
-        player:setVar("TOAUM33_STARTDAY", VanadielDayOfTheYear());
         player:needToZone(true);
         player:addItem(2187);
         player:messageSpecial(ITEM_OBTAINED,2187);
         player:addMission(TOAU,SENTINELS_HONOR);
     elseif (csid == 3130) then
         player:completeMission(TOAU,SENTINELS_HONOR);
-        player:setVar("TOAUM33_STARTDAY", 0);
         player:addMission(TOAU,TESTING_THE_WATERS);
     elseif (csid == 3138) then
         player:completeMission(TOAU,FANGS_OF_THE_LION);

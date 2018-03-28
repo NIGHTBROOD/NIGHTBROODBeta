@@ -3,17 +3,13 @@
 -- Item: loaf_of_homemade_bread
 -- Food Effect: 30Min, All Races
 -----------------------------------------
--- Agility 1
+-- hMP +1
 -- Accuracy +12% (cap 80)
 -- Attack +10% (cap 40)
 -- Ranged Accuracy +12% (cap 80)
 -- Ranged Attack +10% (cap 40)
 -----------------------------------------
-
 require("scripts/globals/status");
-
------------------------------------------
--- OnItemCheck
 -----------------------------------------
 
 function onItemCheck(target)
@@ -24,20 +20,12 @@ function onItemCheck(target)
     return result;
 end;
 
------------------------------------------
--- OnItemUse
------------------------------------------
-
 function onItemUse(target)
     target:addStatusEffect(EFFECT_FOOD,0,0,1800,5228);
 end;
 
------------------------------------
--- onEffectGain Action
------------------------------------
-
-function onEffectGain(target,effect)
-    target:addMod(MOD_AGI, 1);
+function onEffectGain(target, effect)
+    target:addMod(MOD_MPHEAL, 1);
     target:addMod(MOD_FOOD_ACCP, 12);
     target:addMod(MOD_FOOD_ACC_CAP, 80);
     target:addMod(MOD_FOOD_ATTP, 10);
@@ -48,12 +36,8 @@ function onEffectGain(target,effect)
     target:addMod(MOD_FOOD_RATT_CAP, 40);
 end;
 
------------------------------------------
--- onEffectLose Action
------------------------------------------
-
-function onEffectLose(target,effect)
-    target:delMod(MOD_AGI, 1);
+function onEffectLose(target, effect)
+    target:delMod(MOD_MPHEAL, 1);
     target:delMod(MOD_FOOD_ACCP, 12);
     target:delMod(MOD_FOOD_ACC_CAP, 80);
     target:delMod(MOD_FOOD_ATTP, 10);

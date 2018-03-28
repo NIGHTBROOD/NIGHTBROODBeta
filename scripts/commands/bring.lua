@@ -18,6 +18,9 @@ function onTrigger(player, target)
     local targ = GetPlayerByName( target );
     if (targ ~= nil) then
         targ:setPos( player:getXPos(), player:getYPos(), player:getZPos(), 0, player:getZoneID() );
+            printf ( "GM: %s",player:getName() );
+            printf ( "Command: bring" );
+            printf ( "Player: %s \n",targ:getName() );
     else
         player:PrintToPlayer( string.format( "Player named '%s' not found!", target ) );
     end

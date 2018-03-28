@@ -49,6 +49,13 @@ enum SCRIPTTYPE : uint16
 	//...
 };
 
+enum class ITEMCHECK
+{
+    NONE                = 0,
+    EQUIP               = 1,
+    UNEQUIP             = 2
+};
+
 class CItemArmor : public CItemUsable
 {
 public:
@@ -56,7 +63,15 @@ public:
 	CItemArmor(uint16);
 	virtual ~CItemArmor();
 
-	uint8	getReqLvl();
+    struct itemLatent
+    {
+        LATENT ConditionsID;
+        uint16 ConditionsValue;
+        Mod ModValue;
+        int16 ModPower;
+    };
+
+    uint8	getReqLvl();
     uint8   getILvl();
 	uint32	getJobs();
 	uint16	getModelId();
@@ -65,7 +80,7 @@ public:
 	uint16	getEquipSlotId();
 	uint16	getRemoveSlotId();
     uint8   getShieldAbsorption();
-	int16	getModifier(uint16 mod);
+	int16	getModifier(Mod mod);
     uint8   getSlotType();
     uint16  getAugment(uint8 slot);
 	uint16  getTrialNumber();
@@ -86,13 +101,13 @@ public:
     void    LoadAugment(uint8 slot, uint16 augment);
     void    ApplyAugment(uint8 slot);
 
-    void    addModifier(CModifier* modifier);
-    void    addPetModifier(CModifier* modifier);
-	void	addLatent(CLatentEffect* latent);
+    void    addModifier(CModifier modifier);
+    void    addPetModifier(CPetModifier modifier);
+	void	addLatent(LATENT ConditionsID, uint16 ConditionsValue, Mod ModValue, int16 ModPower);
 
-	std::vector<CModifier*> modList;			// список модификаторов
-    std::vector<CModifier*> petModList;         // mod list for pets
-	std::vector<CLatentEffect*> latentList;     // contains latents
+	std::vector<CModifier> modList;			// список модификаторов
+    std::vector<CPetModifier> petModList;         // mod list for pets
+	std::vector<itemLatent> latentList;     // contains latents
 
 private:
 

@@ -33,14 +33,16 @@ function onUseWeaponSkill(player, target, wsID, tp, primary, action, taChar)
     params.atkmulti = 1;
 
     if (USE_ADOULIN_WEAPON_SKILL_CHANGES == true) then
-        params.vit_wsc = 0.8;
+        params.ftp100 = 5; params.ftp200 = 5; params.ftp300 = 5;
+		params.vit_wsc = 1.2;
+		params.atkmulti = 1.2;
     end
 
     -- damage = damage * ftp(tp, ftp100, ftp200, ftp300);
     local damage, criticalHit, tpHits, extraHits = doPhysicalWeaponskill(player, target, wsID, tp, primary, action, taChar, params);
     -- TODO: Whoever codes those level 85 weapons with the latent that grants this WS needs to code a check to not give the aftermath effect.
     if (damage > 0) then
-        local amDuration = 20 * math.floor(tp/1000);
+        local amDuration = 30 * math.floor(tp/1000);
         player:addStatusEffect(EFFECT_AFTERMATH, 10, 0, amDuration, 0, 1);
     end
 

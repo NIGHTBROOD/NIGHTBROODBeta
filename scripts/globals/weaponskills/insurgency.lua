@@ -29,8 +29,12 @@ function onUseWeaponSkill(player, target, wsID, tp, primary, action, taChar)
     params.acc100 = 0.0; params.acc200= 0.0; params.acc300= 0.0;
     params.atkmulti = 1;
 
-    if (USE_ADOULIN_WEAPON_SKILL_CHANGES == true) then
-        params.ftp200 = 3.25; params.ftp300 = 6;
+    if ((player:getEquipID(SLOT_MAIN) == 18998) and (player:getMainJob() == JOBS.DRK)) then
+        if (USE_ADOULIN_WEAPON_SKILL_CHANGES == true) then
+            params.ftp100 = 1.5; params.ftp200 = 2.5; params.ftp300 = 3;
+			params.str_wsc = 0.4; params.int_wsc = 0.4; 
+			
+        end
     end
 
     local damage, criticalHit, tpHits, extraHits = doPhysicalWeaponskill(player, target, wsID, tp, primary, action, taChar, params);

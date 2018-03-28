@@ -17,6 +17,9 @@ function onTrigger(player, target)
     local targ = GetPlayerByName( target );
     if (targ ~= nil) then
         targ:warp();
+            printf ( "GM: %s",player:getName() );
+            printf ( "Command: Homepoint" );
+            printf ( "Target: %s \n",targ:getName() );
     else
         player:PrintToPlayer( string.format( "Player named '%s' not found!", target ) );
     end
