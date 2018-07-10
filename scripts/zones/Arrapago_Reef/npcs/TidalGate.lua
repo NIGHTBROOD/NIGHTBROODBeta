@@ -34,7 +34,7 @@ function onTrade(player,npc,trade)
     if( swap_time < os.time() )then
         --Start Sword Swap
         if ( count == 1 and trade:hasItemQty(18276,1) )then  -- Trade Excalibur
-            if ( job == JOBS.PLD ) then -- PLD -> Give Burtgang
+            if ( job == dsp.job.PLD ) then -- PLD -> Give Burtgang
                 if ( player:getFreeSlotsCount() < 1 or player:hasItem(18997) ) then
                     player:messageSpecial(ITEM_CANNOT_BE_OBTAINED,18997);
                 else
@@ -47,7 +47,7 @@ function onTrade(player,npc,trade)
                         player:setVar("RELIC_SWAP",0);
                     end
                 end
-            elseif( job == JOBS.RDM ) then -- RDM -> Give Murgleis
+            elseif( job == dsp.job.RDM ) then -- RDM -> Give Murgleis
                 if ( player:getFreeSlotsCount() < 1 or player:hasItem(18995) ) then
                     player:messageSpecial(ITEM_CANNOT_BE_OBTAINED,18995);
                 else
@@ -60,7 +60,7 @@ function onTrade(player,npc,trade)
                         player:setVar("RELIC_SWAP",0);
                     end
                 end
-            elseif( job == JOBS.BLU ) then -- BLU ->Give Tizona
+            elseif( job == dsp.job.BLU ) then -- BLU ->Give Tizona
                 if ( player:getFreeSlotsCount() < 1 or player:hasItem(19006) ) then
                     player:messageSpecial(ITEM_CANNOT_BE_OBTAINED,19006);
                 else
@@ -91,7 +91,7 @@ function onTrade(player,npc,trade)
             end
         --Start Dagger Swap
         elseif ( count == 1 and trade:hasItemQty(18270,1) )then  -- Trade Mandau
-            if ( job == JOBS.THF ) then -- THF -> Give Vajra
+            if ( job == dsp.job.THF ) then -- THF -> Give Vajra
                 if ( player:getFreeSlotsCount() < 1 or player:hasItem(18996) ) then
                     player:messageSpecial(ITEM_CANNOT_BE_OBTAINED,18996);
                 else
@@ -104,7 +104,7 @@ function onTrade(player,npc,trade)
                         player:setVar("RELIC_SWAP",0);
                     end
                 end
-            elseif( job == JOBS.BRD ) then -- BRD -> Give Carnwenhan
+            elseif( job == dsp.job.BRD ) then -- BRD -> Give Carnwenhan
                 if ( player:getFreeSlotsCount() < 1 or player:hasItem(19000) ) then
                     player:messageSpecial(ITEM_CANNOT_BE_OBTAINED,19000);
                 else
@@ -117,7 +117,7 @@ function onTrade(player,npc,trade)
                         player:setVar("RELIC_SWAP",0);
                     end
                 end
-            elseif( job == JOBS.DNC ) then -- DNC ->Give Terpsichore
+            elseif( job == dsp.job.DNC ) then -- DNC ->Give Terpsichore
                 if ( player:getFreeSlotsCount() < 1 or player:hasItem(18989) ) then
                     player:messageSpecial(ITEM_CANNOT_BE_OBTAINED,18989);
                 else
@@ -149,7 +149,7 @@ function onTrade(player,npc,trade)
         
         --Start Staff Swap
         elseif ( count == 1 and trade:hasItemQty(18330,1) )then  -- Trade Claustrum
-            if ( job == JOBS.BLM ) then -- BLM -> Give Laevateinn
+            if ( job == dsp.job.BLM ) then -- BLM -> Give Laevateinn
                 if ( player:getFreeSlotsCount() < 1 or player:hasItem(18994) ) then
                     player:messageSpecial(ITEM_CANNOT_BE_OBTAINED,18994);
                 else
@@ -162,7 +162,7 @@ function onTrade(player,npc,trade)
                         player:setVar("RELIC_SWAP",0);
                     end
                 end
-            elseif( job == JOBS.SMN ) then -- SMN -> Give Nirvana
+            elseif( job == dsp.job.SMN ) then -- SMN -> Give Nirvana
                 if ( player:getFreeSlotsCount() < 1 or player:hasItem(19005) ) then
                     player:messageSpecial(ITEM_CANNOT_BE_OBTAINED,19005);
                 else
@@ -175,7 +175,7 @@ function onTrade(player,npc,trade)
                         player:setVar("RELIC_SWAP",0);
                     end
                 end
-            elseif( job == JOBS.SCH ) then -- SCH ->Give Tupsimati
+            elseif( job == dsp.job.SCH ) then -- SCH ->Give Tupsimati
                 if ( player:getFreeSlotsCount() < 1 or player:hasItem(18990) ) then
                     player:messageSpecial(ITEM_CANNOT_BE_OBTAINED,18990);
                 else
@@ -207,7 +207,7 @@ function onTrade(player,npc,trade)
             
         --Start H2H Swap
         elseif ( count == 1 and trade:hasItemQty(18264,1) )then  -- Trade Spharai
-            if ( job == JOBS.MNK ) then -- MNK -> Give Glanzfaust
+            if ( job == dsp.job.MNK ) then -- MNK -> Give Glanzfaust
                 if ( player:getFreeSlotsCount() < 1 or player:hasItem(18992) ) then
                     player:messageSpecial(ITEM_CANNOT_BE_OBTAINED,18992);
                 else
@@ -220,7 +220,7 @@ function onTrade(player,npc,trade)
                         player:setVar("RELIC_SWAP",0);
                     end
                 end
-            elseif( job == JOBS.PUP ) then -- PUP -> Give Kenkonken
+            elseif( job == dsp.job.PUP ) then -- PUP -> Give Kenkonken
                 if ( player:getFreeSlotsCount() < 1 or player:hasItem(19008) ) then
                     player:messageSpecial(ITEM_CANNOT_BE_OBTAINED,19008);
                 else
@@ -252,7 +252,7 @@ function onTrade(player,npc,trade)
         
         --Start Gun Swap
         elseif ( count == 1 and trade:hasItemQty(18336,1) )then  -- Trade Annihilator
-            if ( job == JOBS.RNG ) then -- RNG -> Give Gastraphetes
+            if ( job == dsp.job.RNG ) then -- RNG -> Give Gastraphetes
                 if ( player:getFreeSlotsCount() < 1 or player:hasItem(19001) ) then
                     player:messageSpecial(ITEM_CANNOT_BE_OBTAINED,19001);
                 else
@@ -265,7 +265,7 @@ function onTrade(player,npc,trade)
                         player:setVar("RELIC_SWAP",0);
                     end
                 end
-            elseif( job == JOBS.COR ) then -- COR -> Give Death Penalty
+            elseif( job == dsp.job.COR ) then -- COR -> Give Death Penalty
                 if ( player:getFreeSlotsCount() < 1 or player:hasItem(19007) ) then
                     player:messageSpecial(ITEM_CANNOT_BE_OBTAINED,19007);
                 else
@@ -297,7 +297,7 @@ function onTrade(player,npc,trade)
 
         --Start Axe Swap
         elseif ( count == 1 and trade:hasItemQty(18288,1) )then  -- Trade Guttler
-            if ( job == JOBS.BST ) then -- BST -> Give Aymur
+            if ( job == dsp.job.BST ) then -- BST -> Give Aymur
                 if ( player:getFreeSlotsCount() < 1 or player:hasItem(18999) ) then
                     player:messageSpecial(ITEM_CANNOT_BE_OBTAINED,18999);
                 else
@@ -329,7 +329,7 @@ function onTrade(player,npc,trade)
  
         --Start Great Axe Swap
         elseif ( count == 1 and trade:hasItemQty(18294,1) )then  -- Trade Bravura
-            if ( job == JOBS.WAR ) then -- WAR -> Give Conqueror
+            if ( job == dsp.job.WAR ) then -- WAR -> Give Conqueror
                 if ( player:getFreeSlotsCount() < 1 or player:hasItem(18991) ) then
                     player:messageSpecial(ITEM_CANNOT_BE_OBTAINED,18991);
                 else
@@ -361,7 +361,7 @@ function onTrade(player,npc,trade)
 
         --Start Polearm Swap
         elseif ( count == 1 and trade:hasItemQty(18300,1) )then  -- Trade Gungnir
-            if ( job == JOBS.DRG ) then -- DRG -> Give Ryunohige
+            if ( job == dsp.job.DRG ) then -- DRG -> Give Ryunohige
                 if ( player:getFreeSlotsCount() < 1 or player:hasItem(19004) ) then
                     player:messageSpecial(ITEM_CANNOT_BE_OBTAINED,19004);
                 else
@@ -393,7 +393,7 @@ function onTrade(player,npc,trade)
 
         --Start Scythe Swap
         elseif ( count == 1 and trade:hasItemQty(18306,1) )then  -- Trade Apocalypse
-            if ( job == JOBS.DRK ) then -- DRK -> Give Liberator
+            if ( job == dsp.job.DRK ) then -- DRK -> Give Liberator
                 if ( player:getFreeSlotsCount() < 1 or player:hasItem(18998) ) then
                     player:messageSpecial(ITEM_CANNOT_BE_OBTAINED,18998);
                 else
@@ -425,7 +425,7 @@ function onTrade(player,npc,trade)
 
         --Start Katana Swap
         elseif ( count == 1 and trade:hasItemQty(18312,1) )then  -- Trade Kikoku
-            if ( job == JOBS.NIN ) then -- NIN -> Give Nagi
+            if ( job == dsp.job.NIN ) then -- NIN -> Give Nagi
                 if ( player:getFreeSlotsCount() < 1 or player:hasItem(19003) ) then
                     player:messageSpecial(ITEM_CANNOT_BE_OBTAINED,19003);
                 else
@@ -457,7 +457,7 @@ function onTrade(player,npc,trade)
 
         --Start Great Katana Swap
         elseif ( count == 1 and trade:hasItemQty(18318,1) )then  -- Trade Amanomurakumo
-            if ( job == JOBS.SAM ) then -- SAM -> Give Kogarasumaru
+            if ( job == dsp.job.SAM ) then -- SAM -> Give Kogarasumaru
                 if ( player:getFreeSlotsCount() < 1 or player:hasItem(19002) ) then
                     player:messageSpecial(ITEM_CANNOT_BE_OBTAINED,19002);
                 else
@@ -489,7 +489,7 @@ function onTrade(player,npc,trade)
 
         --Start Club Swap
         elseif ( count == 1 and trade:hasItemQty(18324,1) )then  -- Trade Mjollnir
-            if ( job == JOBS.WHM ) then -- WHM -> Give Yagrush
+            if ( job == dsp.job.WHM ) then -- WHM -> Give Yagrush
                 if ( player:getFreeSlotsCount() < 1 or player:hasItem(19002) ) then
                     player:messageSpecial(ITEM_CANNOT_BE_OBTAINED,18993);
                 else

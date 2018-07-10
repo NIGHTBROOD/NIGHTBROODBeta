@@ -8,17 +8,10 @@ package.loaded["scripts/zones/Aht_Urhgan_Whitegate/TextIDs"] = nil;
 -----------------------------------
 require("scripts/zones/Aht_Urhgan_Whitegate/TextIDs");
 require("scripts/globals/besieged");
-
------------------------------------
--- onTrade Action
 -----------------------------------
 
 function onTrade(player,npc,trade)
 end;
-
------------------------------------
--- onTrigger Action
------------------------------------
 
 function onTrigger(player,npc)
     player:startEvent(913);
@@ -26,27 +19,18 @@ function onTrigger(player,npc)
 	player:PrintToPlayer("It will convert your current merit balance at a 1:50 merit:zeni ratio.");
 end;
 
------------------------------------
--- onEventUpdate
------------------------------------
-
 function onEventUpdate(player,csid,option)
-        -- printf("updateCSID: %u",csid);
+    -- printf("updateCSID: %u",csid);
     -- printf("updateRESULT: %u",option);
 	local meritCount = player:getMeritCount();
     local zeniConvertTimer = player:getVar("ZENI_CONVERT");
 	local zeniConvert = player:getMeritCount()*50;
-	
     if (option == 300) then
         player:updateEvent(player:getCurrency("zeni_point"),0);
     else
         player:updateEvent(0,0);
     end
 end;
-
------------------------------------
--- onEventFinish
------------------------------------
 
 function onEventFinish(player,csid,option)
     -- printf("finishCSID: %u",csid);

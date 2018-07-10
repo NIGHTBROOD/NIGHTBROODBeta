@@ -1,13 +1,12 @@
 -----------------------------------
---  Area: Windurst Woods
---  NPC:  Ibwam
---  Type: Warp NPC
+-- Area: Windurst Woods
+--  NPC: Ibwam
+-- Type: Warp NPC
 -- !pos -25.655 1.749 -60.651 241
 -----------------------------------
 package.loaded["scripts/zones/Windurst_Woods/TextIDs"] = nil;
 package.loaded["scripts/globals/settings"] = nil;
 -----------------------------------
-
 require("scripts/globals/settings");
 require("scripts/globals/quests");
 require("scripts/globals/missions");
@@ -46,20 +45,12 @@ Port Windurst (West to East)
 80000    (M-6) Yujuju (outside the Air Travel Agency)
 ]]--
 
------------------------------------
--- onTrade Action
------------------------------------
-
 function onTrade(player,npc,trade)
     if (trade:getGil() == 300 and trade:getItemCount() == 1 and player:getQuestStatus(WINDURST,LURE_OF_THE_WILDCAT_WINDURST) == QUEST_COMPLETED and player:getCurrentMission(TOAU) > IMMORTAL_SENTRIES) then
         -- Needs a check for at least traded an invitation card to Naja Salaheem
         player:startEvent(794);
     end
 end;
-
------------------------------------
--- onTrigger Action
------------------------------------
 
 function onTrigger(player,npc)
     local LureWindurst = player:getQuestStatus(WINDURST,LURE_OF_THE_WILDCAT_WINDURST);
@@ -83,37 +74,25 @@ function onTrigger(player,npc)
     end
 end;
 
------------------------------------
--- onEventUpdate
------------------------------------
-
 function onEventUpdate(player,csid,option)
-    -- printf("CSID: %u",csid);
-    -- printf("RESULT: %u",option);
 end;
 
------------------------------------
--- onEventFinish
------------------------------------
-
 function onEventFinish(player,csid,option)
-    -- printf("CSID: %u",csid);
-    -- printf("RESULT: %u",option);
     if (csid == 736) then
         player:addQuest(WINDURST,LURE_OF_THE_WILDCAT_WINDURST);
         player:setVar("WildcatWindurst",0);
-        player:addKeyItem(GREEN_SENTINEL_BADGE);
-        player:messageSpecial(KEYITEM_OBTAINED,GREEN_SENTINEL_BADGE);
+        player:addKeyItem(dsp.ki.GREEN_SENTINEL_BADGE);
+        player:messageSpecial(KEYITEM_OBTAINED,dsp.ki.GREEN_SENTINEL_BADGE);
     elseif (csid == 739) then
         player:completeQuest(WINDURST,LURE_OF_THE_WILDCAT_WINDURST);
         player:addFame(WINDURST,150);
         player:setVar("WildcatWindurst",0);
-        player:delKeyItem(GREEN_SENTINEL_BADGE);
-        player:addKeyItem(GREEN_INVITATION_CARD);
-        player:messageSpecial(KEYITEM_LOST,GREEN_SENTINEL_BADGE);
-        player:messageSpecial(KEYITEM_OBTAINED,GREEN_INVITATION_CARD);
+        player:delKeyItem(dsp.ki.GREEN_SENTINEL_BADGE);
+        player:addKeyItem(dsp.ki.GREEN_INVITATION_CARD);
+        player:messageSpecial(KEYITEM_LOST,dsp.ki.GREEN_SENTINEL_BADGE);
+        player:messageSpecial(KEYITEM_OBTAINED,dsp.ki.GREEN_INVITATION_CARD);
     elseif (csid == 794) then
         player:tradeComplete();
-        toAhtUrhganWhitegate(player);
+        dsp.teleport.to(player, dsp.teleport.id.WHITEGATE);
     end
 end;

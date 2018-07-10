@@ -7,24 +7,31 @@ require("scripts/globals/status");
 
 cmdprops =
 {
-    permission = 5,
-    parameters = "ss"
+    permission = 1,
+    parameters = "s"
 };
 
-function onTrigger(player, animationId, target)
-    local targ = GetPlayerByName( target );
+function error(player, msg)
+    player:PrintToPlayer(msg);
+    player:PrintToPlayer("!animation {animationID}");
+end;
 
-    animationId = tonumber(animationId) or _G[animationId];
+function onTrigger(player, animationId)
+    local oldAnimation = player:getAnimation();
     
     if (animationId == nil) then
-        player:PrintToPlayer( string.format( "Current player animation: %d", player:getAnimation() ) );
+        player:PrintToPlayer(string.format("Current player animation: %d", oldAnimation));
         return;
     end
-    
-    if (targ == nil) then
-        player:setAnimation( animationId );
+
+    -- validate animationId
+    animationId = tonumber(animationId) or dsp.anim[string.upper(animationId)];
+    if (animationId == nil or animationId < 0) then
+        error(player, "Invalid animationId.");
         return;
-    else
-        targ:setAnimation( animationId );
     end
+
+    -- set player animation
+    player:setAnimation(animationId);
+    player:PrintToPlayer(string.format("%s | Old animation: %i | New animation: %i\n", player:getName(), oldAnimation, animationId));
 end

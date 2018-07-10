@@ -5,34 +5,36 @@
 
 cmdprops =
 {
-    permission = 3,
+    permission = 1,
     parameters = "is"
 };
 
+function error(player, msg)
+    player:PrintToPlayer(msg);
+    player:PrintToPlayer("!setmerits <amount> {player}");
+end;
+
 function onTrigger(player, amount, target)
+
+    -- validate amount
+    if (amount == nil or amount < 0) then
+        error(player, "Invalid amount.");
+        return;
+    end
+
+    -- validate target    
     local targ;
     if (target == nil) then
         targ = player;
     else
         targ = GetPlayerByName(target);
+        if (targ == nil) then
+            error(player, string.format("Player named '%s' not found!", target));
+            return;
+        end
     end
 
-    if (amount == nil) then
-        player:PrintToPlayer("You must enter a valid amount.");
-        player:PrintToPlayer("@setmerits <amount> <player>");
-        return;
-    end
-
-    if (targ == nil) then
-        player:PrintToPlayer(string.format("Player named '%s' not found!", target));
-        player:PrintToPlayer("@setmerits <amount> <player>");
-        return;
-    end
-
+    -- set merits
     targ:setMerits(amount);
-        printf ( "GM: %s",player:getName() );
-        printf ( "Command: setmerits" );
-        printf ( "Amount: %i ",amount );
-        printf ( "Target: %s \n",targ:getName() );
-	targ:PrintToPlayer(string.format("You were awarded %i merits!", amount));
+    player:PrintToPlayer( string.format("%s now has %i merits.", targ:getName(), targ:getMeritCount() ) );
 end;

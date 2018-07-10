@@ -14,10 +14,6 @@ require("scripts/globals/quests");
 require("scripts/globals/titles");
 
 
------------------------------------
--- onTrade Action
------------------------------------
-
 function onTrade(player,npc,trade)
 
     local allnew = player:getQuestStatus(WINDURST,THE_ALL_NEW_C_2000);
@@ -60,13 +56,10 @@ function onTrade(player,npc,trade)
             player:startEvent(656,0,889,939); -- Incorrect or not enough items
         end
 
-   end
+    end
 
 end;
 
------------------------------------
--- onTrigger Action
------------------------------------
 function onTrigger(player,npc)
 
     local allnew = player:getQuestStatus(WINDURST,THE_ALL_NEW_C_2000);
@@ -121,22 +114,10 @@ function onTrigger(player,npc)
     end
 end;
 
------------------------------------
--- onEventUpdate
------------------------------------
-
 function onEventUpdate(player,csid,option)
-    -- printf("CSID: %u",csid);
-    -- printf("RESULT: %u",option);
 end;
 
------------------------------------
--- onEventFinish
------------------------------------
-
 function onEventFinish(player,csid,option)
-    -- printf("CSID: %u",csid);
-    -- printf("RESULT: %u",option);
 
     -- The All New C-2000
     if (csid == 285 and option ~= 2) then  -- option 2 is declining the quest for the second question
@@ -144,7 +125,7 @@ function onEventFinish(player,csid,option)
     elseif (csid == 292) then
         player:tradeComplete();
         player:addFame(WINDURST,80);
-        player:addTitle(CARDIAN_TUTOR);
+        player:addTitle(dsp.title.CARDIAN_TUTOR);
         player:addGil(GIL_RATE*200);
         player:messageSpecial(GIL_OBTAINED,GIL_RATE*200);
         player:completeQuest(WINDURST,THE_ALL_NEW_C_2000);

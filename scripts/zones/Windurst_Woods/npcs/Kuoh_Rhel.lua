@@ -1,7 +1,7 @@
 -----------------------------------
 -- Area: Windurst Woods
 --  NPC: Kuoh Rhel
---  Type: Standard NPC
+-- Type: Standard NPC
 -- Starts quests: Chocobilious, In a Stew
 -- !pos 131.437 -6 -102.723 241
 --  Note: In a Stew should only repeat once per conquest tally. The tally is not implemented at time of
@@ -13,17 +13,10 @@ require("scripts/zones/Windurst_Woods/TextIDs");
 require("scripts/globals/settings");
 require("scripts/globals/quests");
 require("scripts/globals/titles");
-
------------------------------------
--- onTrade Action
 -----------------------------------
 
 function onTrade(player,npc,trade)
 end;
-
------------------------------------
--- onTrigger Action
------------------------------------
 
 function onTrigger(player,npc)
 
@@ -39,7 +32,7 @@ function onTrigger(player,npc)
             player:startEvent(235); -- IAS start
         end
 
-    elseif (IASvar == 4 and player:hasKeyItem(RANPIMONPIS_SPECIAL_STEW)) then
+    elseif (IASvar == 4 and player:hasKeyItem(dsp.ki.RANPIMONPIS_SPECIAL_STEW)) then
         player:startEvent(239);    -- IAS turn in
 
     elseif (IAS == QUEST_ACCEPTED) then
@@ -69,22 +62,10 @@ function onTrigger(player,npc)
 
 end;
 
------------------------------------
--- onEventUpdate
------------------------------------
-
 function onEventUpdate(player,csid,option)
-    -- printf("CSID: %u",csid);
-    -- printf("RESULT: %u",option);
 end;
 
------------------------------------
--- onEventFinish
------------------------------------
-
 function onEventFinish(player,csid,option)
-    -- printf("CSID: %u",csid);
-    -- printf("RESULT: %u",option);
 
     --Chocobilious
     if (csid == 224 and option == 1) then            -- Quest start
@@ -108,7 +89,7 @@ function onEventFinish(player,csid,option)
         player:addFame(WINDURST,50);
         player:addGil(GIL_RATE*900);
         player:messageSpecial(GIL_OBTAINED,GIL_RATE*900);
-        player:delKeyItem(RANPIMONPIS_SPECIAL_STEW);
+        player:delKeyItem(dsp.ki.RANPIMONPIS_SPECIAL_STEW);
     elseif (csid == 234 and option == 1) then        -- start repeat
         player:setVar("IASvar",3);
 

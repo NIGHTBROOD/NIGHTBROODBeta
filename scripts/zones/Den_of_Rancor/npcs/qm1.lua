@@ -1,15 +1,11 @@
 -----------------------------------
 -- Area: Den of Rancor
--- NPC:  ??? - HakuTaku spawn
+--  NPC: ??? - HakuTaku spawn
 -- !pos 24 25 -306 160
 -----------------------------------
 package.loaded["scripts/zones/Den_of_Rancor/TextIDs"] = nil;
 -----------------------------------
-
 require("scripts/zones/Den_of_Rancor/TextIDs");
-
------------------------------------
--- onTrade Action
 -----------------------------------
 
 function onTrade(player,npc,trade)
@@ -18,13 +14,9 @@ function onTrade(player,npc,trade)
     if (GetMobAction(17433005) == 0 and trade:hasItemQty(1298,1) and trade:getItemCount() == 1) then
         player:tradeComplete();
         SpawnMob(17433005):updateClaim(player); -- Hakutaku
-        npc:setStatus(STATUS_DISAPPEAR);
+        npc:setStatus(dsp.status.DISAPPEAR);
     end
 end;
-
------------------------------------
--- onTrigger Action
------------------------------------
 
 function onTrigger(player,npc)
 end;

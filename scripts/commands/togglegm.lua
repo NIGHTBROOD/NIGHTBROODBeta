@@ -13,7 +13,7 @@ function onTrigger(player)
     -- GM Flag Definitions
     local FLAG_GM               = 0x04000000;
     local FLAG_GM_SENIOR        = 0x05000000;
-    local FLAG_GM_LEAD          = 0x03000000;
+    local FLAG_GM_LEAD          = 0x06000000;
     local FLAG_GM_PRODUCER      = 0x07000000;
     local FLAG_SENIOR           = 0x01000000; -- Do NOT set these flags. These are here to
     local FLAG_LEAD             = 0x02000000; -- ensure all GM status is removed.

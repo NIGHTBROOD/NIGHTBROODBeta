@@ -3,20 +3,14 @@
 --  MOB: Sandworm
 -- Note: Title Given if Sandworm does not Doomvoid
 -----------------------------------
-
 require("scripts/globals/titles");
-
------------------------------------
--- onMobSpawn Action
 -----------------------------------
 
 function onMobSpawn(mob)
 end;
 
------------------------------------
--- onMobDeath
------------------------------------
-
 function onMobDeath(mob, player, isKiller)
-    player:addTitle(SANDWORM_WRANGLER);
+    player:addTitle(dsp.title.SANDWORM_WRANGLER);
+	player:addCurrency('bayld', 1);
+    player:messageSpecial(BAYLD_OBTAINED, 1);
 end;

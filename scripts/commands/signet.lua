@@ -10,8 +10,8 @@ cmdprops =
 };
 
 function onTrigger(player)
-	    player:delStatusEffect(EFFECT_SIGIL);
-	    player:delStatusEffect(EFFECT_SANCTION);
-	    player:delStatusEffect(EFFECT_SIGNET);
-	    player:addStatusEffect(EFFECT_SIGNET,0,0,18000);
+	    player:delStatusEffect(dsp.effect.SIGNET);
+	    player:delStatusEffect(dsp.effect.SANCTION);
+	    player:delStatusEffect(dsp.effect.SIGIL);
+	    player:addStatusEffect(dsp.effect.SIGNET,0,0,18000);
 end

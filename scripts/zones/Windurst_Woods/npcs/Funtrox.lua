@@ -234,7 +234,7 @@ function onTrade(player,npc,trade)
 		end
 	end
 	
-	if (count == 11 and trade:hasItemQty(2605,10) and trade:hasItemQty(12628,1)) then --10 Coins of Glory and Battle Jupon +1 gets you Enlil's Gambison
+	if (count == 4 and trade:hasItemQty(2605,10) and trade:hasItemQty(12628,1)) then --10 Coins of Glory and Battle Jupon +1 gets you Enlil's Gambison
 		player:PrintToPlayer("Now this is what I'm talking about.");
 		player:PrintToPlayer("Once you have Anu's, Ea's, and Enlil's, bring that back with more payment for something special.");
 		if (player:getFreeSlotsCount() < 1 or player:hasItem(14561) or player:hasItem(14558) ) then

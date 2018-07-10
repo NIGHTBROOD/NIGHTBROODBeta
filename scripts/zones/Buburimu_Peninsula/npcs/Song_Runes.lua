@@ -10,9 +10,6 @@ require("scripts/globals/settings");
 require("scripts/globals/titles");
 require("scripts/globals/quests");
 require("scripts/zones/Buburimu_Peninsula/TextIDs");
-
------------------------------------
--- onTrade Action
 -----------------------------------
 
 function onTrade(player,npc,trade)
@@ -21,10 +18,6 @@ function onTrade(player,npc,trade)
         player:startEvent(2);
     end;
 end;
-
------------------------------------
--- onTrigger Action
------------------------------------
 
 function onTrigger(player,npc)
     -- THE OLD MONUMENT
@@ -39,16 +32,8 @@ function onTrigger(player,npc)
     end;
 end;
 
------------------------------------
--- onEventUpdate
------------------------------------
-
 function onEventUpdate(player,csid,option)
 end;
-
------------------------------------
--- onEventFinish
------------------------------------
 
 function onEventFinish(player,csid,option)
     if (csid == 0) then
@@ -59,7 +44,7 @@ function onEventFinish(player,csid,option)
         player:addItem(634,1);
         player:messageSpecial(ITEM_OBTAINED, 634);
         player:completeQuest(JEUNO,THE_OLD_MONUMENT);
-        player:addTitle(RESEARCHER_OF_CLASSICS);
+        player:addTitle(dsp.title.RESEARCHER_OF_CLASSICS);
         player:addFame(BASTOK,10);
         player:addFame(SANDORIA,10);
         player:addFame(WINDURST,10);

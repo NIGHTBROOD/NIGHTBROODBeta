@@ -6,25 +6,31 @@
 
 cmdprops =
 {
-    permission = 2,
+    permission = 1,
     parameters = "s"
 };
 
+function error(player, msg)
+    player:PrintToPlayer(msg);
+    player:PrintToPlayer("!reset {player}");
+end;
+
 function onTrigger(player,target)
+    -- validate target
+    local targ;
     if (target == nil) then
-        player:resetRecasts();
-            printf ( "GM: %s",player:getName() );
-            printf ( "Command: reset" );
-            printf ( "Target: Self \n" );
+        targ = player;
     else
-        local targ = GetPlayerByName(target);
-        if (targ ~= nil) then
-            targ:resetRecasts();
-                printf ( "GM: %s",player:getName() );
-                printf ( "Command: reset" );
-                printf ( "Target: %s \n",targ:getName() );
-        else
-            player:PrintToPlayer( string.format( "Player named '%s' not found!", target ) );
+        targ = GetPlayerByName(target);
+        if (targ == nil) then
+            error(player, string.format( "Player named '%s' not found!", target ) );
+            return;
         end
+    end
+    
+    -- reset target recasts
+    targ:resetRecasts();
+    if (targ:getID() ~= player:getID()) then
+        player:PrintToPlayer( string.format( "Reset %s's recast timers.", targ:getName() ) );
     end
 end;

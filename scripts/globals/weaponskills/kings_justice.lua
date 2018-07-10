@@ -30,17 +30,10 @@ function onUseWeaponSkill(player, target, wsID, tp, primary, action, taChar)
     params.atkmulti = 1;
 
     if (USE_ADOULIN_WEAPON_SKILL_CHANGES == true) then
-       params.ftp100 = 2.3; params.ftp200 = 3; params.ftp300 = 6;
-	   params.str_wsc = 0.8;
+        params.ftp200 = 3; params.ftp300 = 5;
     end
 
 
     local damage, criticalHit, tpHits, extraHits = doPhysicalWeaponskill(player, target, wsID, tp, primary, action, taChar, params);
-    if ((player:getEquipID(SLOT_MAIN) == 18991) and (player:getMainJob() == JOBS.WAR)) then
-        if (damage > 0) then
-            applyAftermathEffect(player, tp)
-        end
-    end
     return tpHits, extraHits, criticalHit, damage;
-
 end

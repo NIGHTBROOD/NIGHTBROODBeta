@@ -1,31 +1,23 @@
 -----------------------------------
---  Area: Bibiki Bay
---  NPC:  Fheli Lapatzuo
---  Type: Manaclipper
+-- Area: Bibiki Bay
+--  NPC: Fheli Lapatzuo
+-- Type: Manaclipper
 -- !pos 488.793 -4.003 709.473 4
 -----------------------------------
-
 package.loaded["scripts/zones/Bibiki_Bay/TextIDs"] = nil;
-
-require("scripts/zones/Bibiki_Bay/TextIDs");
-
 -----------------------------------
--- onTrade Action
+require("scripts/zones/Bibiki_Bay/TextIDs");
 -----------------------------------
 
 function onTrade(player,npc,trade)
 end;
-
------------------------------------
--- onTrigger Action
------------------------------------
 
 function onTrigger(player,npc)
 
     local schedule = 0;
     local vHour = VanadielHour();
     local vMin  = VanadielMinute();
-
+player:setPos(669.917,-23.138,911.655,111);
     if (     vHour ==  0 and vMin <= 10) then    --    Schedule
         --Do nothing.                --    0: A -  0:10 - Dhalmel Rock
     elseif ( vHour ==  0 and vMin <= 50) then    --    1: D -  0:50 - Dhalmel Rock
@@ -156,22 +148,12 @@ function onTrigger(player,npc)
     end
 
     player:startEvent( 18, seconds, depart, arrive, description, 0, 0, 0, 0);
+	player:PrintToPlayer("Fuck the boat!");
+	player:setPos(-359, -3, -444, 74);
 end;
-
------------------------------------
--- onEventUpdate
------------------------------------
 
 function onEventUpdate(player,csid,option)
-    -- printf("CSID: %u",csid);
-    -- printf("RESULT: %u",option);
 end;
 
------------------------------------
--- onEventFinish
------------------------------------
-
 function onEventFinish(player,csid,option)
-    -- printf("CSID: %u",csid);
-    -- printf("RESULT: %u",option);
 end;

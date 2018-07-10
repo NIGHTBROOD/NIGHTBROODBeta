@@ -16,7 +16,7 @@ function onBcnmRegister(player,instance)
     local inst = player:getBattlefieldID();
     local tile = DARKNESS_NAMED_TILE_OFFSET + (inst - 1) * 8;
     for i = tile, tile + 7 do
-        GetNPCByID(i):setAnimation(ANIMATION_CLOSE_DOOR);
+        GetNPCByID(i):setAnimation(dsp.anim.CLOSE_DOOR);
     end
 end;
 
@@ -36,11 +36,11 @@ function onBcnmLeave(player,instance,leavecode)
     if (leavecode == 2) then -- play end CS. Need time and battle id for record keeping + storage
         player:addExp(1000);
         if (player:getCurrentMission(COP) == DARKNESS_NAMED and player:getVar("PromathiaStatus") == 2) then
-            player:addTitle(TRANSIENT_DREAMER);
+            player:addTitle(dsp.title.TRANSIENT_DREAMER);
             player:setVar("PromathiaStatus",3);
             player:startEvent(32001,1,1,1,instance:getTimeInside(),1,0,0);
         else
-            player:startEvent(32001,1,1,1,instance:getTimeInside(),1,1,0); 
+            player:startEvent(32001,1,1,1,instance:getTimeInside(),1,1,0);
         end
     elseif (leavecode == 4) then
         player:startEvent(32002);
@@ -51,4 +51,4 @@ function onEventUpdate(player,csid,option)
 end;
         
 function onEventFinish(player,csid,option)
-end;    
+end;

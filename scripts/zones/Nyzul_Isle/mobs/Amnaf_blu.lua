@@ -4,9 +4,6 @@
 -----------------------------------
 require("scripts/zones/Nyzul_Isle/IDs");
 require("scripts/globals/status");
-
------------------------------------
--- onMobSpawn Action
 -----------------------------------
 
 function onMobSpawn(mob)
@@ -15,7 +12,7 @@ function onMobSpawn(mob)
     -- Stage 2 Adjustments
     if (instance:getProgress() >= 10) then
         -- Don't let Amnaf wander back to the original spawn position
-        mob:setMobMod(MOBMOD_NO_MOVE, 1);
+        mob:setMobMod(dsp.mobMod.NO_MOVE, 1);
 
         -- Stage 2 starts at 50%
         local hp = mob:getHP();
@@ -39,13 +36,9 @@ function onMobSpawn(mob)
     end);
 end;
 
------------------------------------
--- onMobEngaged Action
------------------------------------
-
 function onMobEngaged(mob,target)
     -- Relax movement lock
-    mob:setMobMod(MOBMOD_NO_MOVE, 0);
+    mob:setMobMod(dsp.mobMod.NO_MOVE, 0);
 
     -- Stage AI flags
     local form = mob:getLocalVar("SegmentChanged");
@@ -79,10 +72,6 @@ function onMobEngaged(mob,target)
 
 end;
 
------------------------------------
--- onMobFight Action
------------------------------------
-
 function onMobFight(mob,target)
     local segment = mob:getLocalVar("SegmentChanged");
     if (mob:getHPP() <= 30 and mob:getLocalVar("RenameThisVar") == 0) then
@@ -105,10 +94,6 @@ function onMobFight(mob,target)
     end
 end;
 
------------------------------------
--- onSpellPrecast
------------------------------------
-
 function onSpellPrecast(mob, spell)
     -- Hysteric Barrage
     if (spell == 641) then
@@ -119,16 +104,8 @@ function onSpellPrecast(mob, spell)
     end
 end;
 
------------------------------------
--- onMobDeath
------------------------------------
-
 function onMobDeath(mob, player, isKiller)
 end;
-
------------------------------------
--- onMobDespawn
------------------------------------
 
 function onMobDespawn(mob)
     local instance = mob:getInstance();

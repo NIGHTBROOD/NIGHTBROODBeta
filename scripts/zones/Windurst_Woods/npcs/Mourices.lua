@@ -9,9 +9,6 @@ package.loaded["scripts/zones/Windurst_Woods/TextIDs"] = nil;
 require("scripts/zones/Windurst_Woods/TextIDs");
 require("scripts/globals/keyitems");
 require("scripts/globals/missions");
-
------------------------------------
--- onTrade Action
 -----------------------------------
 
 function onTrade(player,npc,trade)
@@ -27,10 +24,6 @@ function onTrade(player,npc,trade)
     end
 
 end;
-
------------------------------------
--- onTrigger Action
------------------------------------
 
 function onTrigger(player,npc)
 
@@ -67,27 +60,15 @@ function onTrigger(player,npc)
     end
 end;
 
------------------------------------
--- onEventUpdate
------------------------------------
-
 function onEventUpdate(player,csid,option)
-    -- printf("CSID: %u",csid);
-    -- printf("RESULT: %u",option);
 end;
 
------------------------------------
--- onEventFinish
------------------------------------
-
 function onEventFinish(player,csid,option)
-    -- printf("CSID: %u",csid);
-    -- printf("RESULT: %u",option);
 
     if (csid == 448) then
         player:addMission(SANDORIA,JOURNEY_TO_WINDURST);
         player:setVar("MissionStatus",3);
-        player:delKeyItem(LETTER_TO_THE_CONSULS_SANDORIA);
+        player:delKeyItem(dsp.ki.LETTER_TO_THE_CONSULS_SANDORIA);
     elseif (csid == 457) then
         player:setVar("MissionStatus",7);
         player:tradeComplete();
@@ -97,9 +78,9 @@ function onEventFinish(player,csid,option)
         player:setVar("MissionStatus",7);
     elseif (csid == 467) then
         player:addMission(SANDORIA,JOURNEY_ABROAD);
-        player:delKeyItem(KINDRED_CREST);
+        player:delKeyItem(dsp.ki.KINDRED_CREST);
         player:setVar("MissionStatus",11);
-        player:addKeyItem(KINDRED_REPORT);
-        player:messageSpecial(KEYITEM_OBTAINED,KINDRED_REPORT);
+        player:addKeyItem(dsp.ki.KINDRED_REPORT);
+        player:messageSpecial(KEYITEM_OBTAINED,dsp.ki.KINDRED_REPORT);
     end
 end;

@@ -5,24 +5,16 @@
 -----------------------------------
 package.loaded[ "scripts/zones/Beaucedine_Glacier/TextIDs"] = nil;
 -----------------------------------
-
 require("scripts/zones/Beaucedine_Glacier/TextIDs");
 require("scripts/globals/missions");
 require("scripts/globals/icanheararainbow");
 require("scripts/globals/zone");
 require("scripts/globals/conquest");
-
------------------------------------
--- onInitialize
 -----------------------------------
 
 function onInitialize(zone)
     SetRegionalConquestOverseers(zone:getRegionID())
 end;
-
------------------------------------
--- onZoneIn
------------------------------------
 
 function onZoneIn( player, prevZone)
     local cs = -1;
@@ -46,10 +38,6 @@ function onZoneIn( player, prevZone)
     return cs;
 end;
 
------------------------------------
--- onConquestUpdate
------------------------------------
-
 function onConquestUpdate(zone, updatetype)
     local players = zone:getPlayers();
 
@@ -58,20 +46,10 @@ function onConquestUpdate(zone, updatetype)
     end
 end;
 
------------------------------------
--- onRegionEnter
------------------------------------
-
 function onRegionEnter( player, region)
 end;
 
------------------------------------
--- onEventUpdate
------------------------------------
-
 function onEventUpdate( player, csid, option)
-    -- printf("CSID: %u",csid);
-    -- printf("RESULT: %u",option);
     if (csid == 114) then
         lightCutsceneUpdate(player); -- Quest: I Can Hear A Rainbow
     elseif (csid == 116) then
@@ -79,13 +57,7 @@ function onEventUpdate( player, csid, option)
     end
 end;
 
------------------------------------
--- onEventFinish
------------------------------------
-
 function onEventFinish( player, csid, option)
-    -- printf("CSID: %u",csid);
-    -- printf("RESULT: %u",option);
     if (csid == 206) then
         player:setVar("PromathiaStatus",10);
     elseif (csid == 114) then
@@ -93,16 +65,12 @@ function onEventFinish( player, csid, option)
     end
 end;
 
------------------------------------
--- onZoneWeatherChange
------------------------------------
-
 function onZoneWeatherChange(weather)
     local mirrorPond = GetNPCByID(17232196); -- Quest: Love And Ice
 
-    if (weather == WEATHER_GLOOM or weather == WEATHER_DARKNESS) then
-        mirrorPond:setStatus(STATUS_NORMAL);
+    if (weather == dsp.weather.GLOOM or weather == dsp.weather.DARKNESS) then
+        mirrorPond:setStatus(dsp.status.NORMAL);
     else
-        mirrorPond:setStatus(STATUS_DISAPPEAR);
+        mirrorPond:setStatus(dsp.status.DISAPPEAR);
     end
 end;

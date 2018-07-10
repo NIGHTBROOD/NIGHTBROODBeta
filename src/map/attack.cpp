@@ -404,7 +404,7 @@ void CAttack::ProcessDamage()
         ((abs(m_victim->loc.p.rotation - m_attacker->loc.p.rotation) < 23) ||
             m_attacker->StatusEffectContainer->HasStatusEffect(EFFECT_HIDE)))
     {
-        m_trickAttackDamage = m_attacker->DEX();
+        m_trickAttackDamage += m_attacker->DEX() * (1 + m_attacker->getMod(Mod::SNEAK_ATK_DEX) / 100);
     }
 
     // Trick attack.
@@ -419,7 +419,7 @@ void CAttack::ProcessDamage()
     if (m_attackRound->IsH2H())
     {
         // FFXIclopedia H2H: Remove 3 dmg from weapon, DB has an extra 3 for weapon rank. h2hSkill*0.11+3
-        m_naturalH2hDamage = (int32)(m_attacker->GetSkill(SKILL_H2H) * 0.11f);
+        m_naturalH2hDamage = (int32)(m_attacker->GetSkill(SKILL_HAND_TO_HAND) * 0.11f);
         m_baseDamage = std::max<uint16>(m_attacker->GetMainWeaponDmg(), 3);
         if (m_attackType == PHYSICAL_ATTACK_TYPE::KICK)
         {
@@ -461,7 +461,7 @@ void CAttack::ProcessDamage()
     // Get critical bonus mods.
     if (m_isCritical)
     {
-        m_damage += (int32)(m_damage * m_attacker->getMod(Mod::CRIT_DMG_INCREASE) / 100.0f);
+        m_damage += (int32)(m_damage * (m_attacker->getMod(Mod::CRIT_DMG_INCREASE) - m_victim->getMod(Mod::CRIT_DEF_BONUS)) / 100.0f);
     }
 
     // Apply Sneak Attack Augment Mod
@@ -484,7 +484,7 @@ void CAttack::ProcessDamage()
         if (m_attacker->objtype == TYPE_PET && m_attacker->PMaster && m_attacker->PMaster->objtype == TYPE_PC &&
             static_cast<CPetEntity*>(m_attacker)->getPetType() == PETTYPE_AUTOMATON)
         {
-            puppetutils::TrySkillUP((CAutomatonEntity*)m_attacker, SKILL_AME, m_victim->GetMLevel());
+            puppetutils::TrySkillUP((CAutomatonEntity*)m_attacker, SKILL_AUTOMATON_MELEE, m_victim->GetMLevel());
         }
     }
     m_isBlocked = attackutils::IsBlocked(m_attacker, m_victim);

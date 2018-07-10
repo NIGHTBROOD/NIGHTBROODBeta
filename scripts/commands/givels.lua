@@ -6,7 +6,7 @@
 
 cmdprops =
 {
-	permission = 1,
+	permission = 0,
 	parameters = "ss"
 };
 
@@ -27,7 +27,7 @@ function onTrigger(player,ls,target)
 	
 	local gmlvl = player:getGMLevel();
 	-- Char must be an actual GM, or an assistant.
-	if (gmlvl >= 1 == true) then
+	if (gmlvl >= 0 == true) then
 		if (isValidLS(ls) == true) then
 			local targ = GetPlayerByName(target);
 			if (targ ~= nil) then

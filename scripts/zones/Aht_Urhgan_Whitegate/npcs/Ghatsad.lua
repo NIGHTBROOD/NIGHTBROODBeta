@@ -1,20 +1,16 @@
 -----------------------------------
 -- Area: Aht Urhgan Whitegate
--- NPC: Ghatsad
+--  NPC: Ghatsad
 -- Standard Info NPC
 -- Involved in quest: No String Attached
 -----------------------------------
 package.loaded["scripts/zones/Aht_Urhgan_Whitegate/TextIDs"] = nil;
 -----------------------------------
-
 require("scripts/globals/common");
 require("scripts/globals/settings");
 require("scripts/globals/quests");
 require("scripts/globals/status");
 require("scripts/zones/Aht_Urhgan_Whitegate/TextIDs");
-
------------------------------------
--- onTrade Action
 -----------------------------------
 
 function onTrade(player,npc,trade)
@@ -45,21 +41,21 @@ function onTrade(player,npc,trade)
                         player:tradeComplete();
                         player:startEvent(625);
                         player:setVar("PUP_AttachmentStatus", 8)
-                        player:setVar("PUP_AttachmentReady",getMidnight());
+                        player:setVar("PUP_AttachmentReady");
                     end
                 elseif (attachments == 1) then
                     if (trade:getItemQty(2186) == 3) then
                         player:tradeComplete();
                         player:startEvent(625);
                         player:setVar("PUP_AttachmentStatus", 8)
-                        player:setVar("PUP_AttachmentReady",getMidnight());
+                        player:setVar("PUP_AttachmentReady");
                     end
                 elseif (attachments == 2) then
                     if (trade:getItemQty(2187) == 1) then
                         player:tradeComplete();
                         player:startEvent(625);
                         player:setVar("PUP_AttachmentStatus", 8)
-                        player:setVar("PUP_AttachmentReady",getMidnight());
+                        player:setVar("PUP_AttachmentReady");
                     end
                 end
             end
@@ -84,21 +80,21 @@ function onTrade(player,npc,trade)
                         player:tradeComplete();
                         player:startEvent(625);
                         player:setVar("PUP_AttachmentStatus", 9)
-                        player:setVar("PUP_AttachmentReady",getMidnight());
+                        player:setVar("PUP_AttachmentReady");
                     end
                 elseif (attachments == 1) then
                     if (trade:getItemQty(2186) == 3) then
                         player:tradeComplete();
                         player:startEvent(625);
                         player:setVar("PUP_AttachmentStatus", 9)
-                        player:setVar("PUP_AttachmentReady",getMidnight());    
+                        player:setVar("PUP_AttachmentReady");
                     end
                 elseif (attachments == 2) then
                     if (trade:getItemQty(2187) == 1) then
                         player:tradeComplete();
                         player:startEvent(625);
                         player:setVar("PUP_AttachmentStatus", 9)
-                        player:setVar("PUP_AttachmentReady",getMidnight());
+                        player:setVar("PUP_AttachmentReady");
                     end
                 end
             end
@@ -123,23 +119,23 @@ function onTrade(player,npc,trade)
                         player:tradeComplete();
                         player:startEvent(625);
                         player:setVar("PUP_AttachmentStatus", 10)
-                        player:setVar("PUP_AttachmentReady",getMidnight());
+                        player:setVar("PUP_AttachmentReady");
                     end
                 elseif (attachments == 1) then
                     if (trade:getItemQty(2186) == 3) then
                         player:tradeComplete();
                         player:startEvent(625);
                         player:setVar("PUP_AttachmentStatus", 10)
-                        player:setVar("PUP_AttachmentReady",getMidnight());
+                        player:setVar("PUP_AttachmentReady");
                     end
                 elseif (attachments == 2) then
                     if (trade:getItemQty(2187) == 1) then
                         player:tradeComplete();
                         player:startEvent(625);
                         player:setVar("PUP_AttachmentStatus", 10)
-                        player:setVar("PUP_AttachmentReady",getMidnight());
+                        player:setVar("PUP_AttachmentReady");
                     end
-                end        
+                end
             end
         end
     elseif (attachmentStatus == 5) then
@@ -148,21 +144,21 @@ function onTrade(player,npc,trade)
                 player:tradeComplete();
                 player:startEvent(625);
                 player:setVar("PUP_AttachmentStatus", 8)
-                player:setVar("PUP_AttachmentReady",getMidnight());
+                player:setVar("PUP_AttachmentReady");
             end
         elseif (attachments == 1) then
             if (trade:getSlotCount() == 1 and trade:getItemQty(2186) == 3) then
                 player:tradeComplete();
                 player:startEvent(625);
                 player:setVar("PUP_AttachmentStatus", 8)
-                player:setVar("PUP_AttachmentReady",getMidnight());
+                player:setVar("PUP_AttachmentReady");
             end
         elseif (attachments == 2) then
             if (trade:getSlotCount() == 1 and trade:getItemQty(2187) == 1) then
                 player:tradeComplete();
                 player:startEvent(625);
                 player:setVar("PUP_AttachmentStatus", 8)
-                player:setVar("PUP_AttachmentReady",getMidnight());
+                player:setVar("PUP_AttachmentReady");
             end
         end
     elseif (attachmentStatus == 6) then
@@ -171,21 +167,21 @@ function onTrade(player,npc,trade)
                 player:tradeComplete();
                 player:startEvent(625);
                 player:setVar("PUP_AttachmentStatus", 9)
-                player:setVar("PUP_AttachmentReady",getMidnight());
+                player:setVar("PUP_AttachmentReady");
             end
         elseif (attachments == 1) then
             if (trade:getSlotCount() == 1 and trade:getItemQty(2186) == 3) then
                 player:tradeComplete();
                 player:startEvent(625);
                 player:setVar("PUP_AttachmentStatus", 9)
-                player:setVar("PUP_AttachmentReady",getMidnight());
+                player:setVar("PUP_AttachmentReady");
             end
         elseif (attachments == 2) then
             if (trade:getSlotCount() == 1 and trade:getItemQty(2187) == 1) then
                 player:tradeComplete();
                 player:startEvent(625);
                 player:setVar("PUP_AttachmentStatus", 9)
-                player:setVar("PUP_AttachmentReady",getMidnight());
+                player:setVar("PUP_AttachmentReady");
             end
         end
     elseif (attachmentStatus == 7) then
@@ -194,21 +190,21 @@ function onTrade(player,npc,trade)
                 player:tradeComplete();
                 player:startEvent(625);
                 player:setVar("PUP_AttachmentStatus", 10)
-                player:setVar("PUP_AttachmentReady",getMidnight());
+                player:setVar("PUP_AttachmentReady");
             end
         elseif (attachments == 1) then
             if (trade:getSlotCount() == 1 and trade:getItemQty(2186) == 3) then
                 player:tradeComplete();
                 player:startEvent(625);
                 player:setVar("PUP_AttachmentStatus", 10)
-                player:setVar("PUP_AttachmentReady",getMidnight());
+                player:setVar("PUP_AttachmentReady");
             end
         elseif (attachments == 2) then
             if (trade:getSlotCount() == 1 and trade:getItemQty(2187) == 1) then
                 player:tradeComplete();
                 player:startEvent(625);
                 player:setVar("PUP_AttachmentStatus", 10)
-                player:setVar("PUP_AttachmentReady",getMidnight());
+                player:setVar("PUP_AttachmentReady");
             end
         end
     elseif (attachments == 3 and attachmentStatus == 11) then
@@ -218,19 +214,19 @@ function onTrade(player,npc,trade)
                     if (trade:getItemQty(4613) == 1) then
                         player:tradeComplete();
                         player:setVar("PUP_AttachmentStatus", 12)
-                        player:setVar("PUP_AttachmentReady",getMidnight());
+                        player:setVar("PUP_AttachmentReady");
                         player:setVar("PUP_AttachmentWait",math.random(1,3));
                         player:startEvent(902);
                     elseif (trade:getItemQty(4716) == 1) then
                         player:tradeComplete();
                         player:setVar("PUP_AttachmentStatus", 12)
-                        player:setVar("PUP_AttachmentReady",getMidnight());
+                        player:setVar("PUP_AttachmentReady");
                         player:setVar("PUP_AttachmentWait",math.random(2,3));
                         player:startEvent(902);
                     elseif (trade:getItemQty(4610) == 1) then
                         player:tradeComplete();
                         player:setVar("PUP_AttachmentStatus", 12)
-                        player:setVar("PUP_AttachmentReady",getMidnight());
+                        player:setVar("PUP_AttachmentReady");
                         player:setVar("PUP_AttachmentWait",4);
                         player:startEvent(902);
                     end
@@ -238,19 +234,19 @@ function onTrade(player,npc,trade)
                     if (trade:getItemQty(4770) == 1) then
                         player:tradeComplete();
                         player:setVar("PUP_AttachmentStatus", 13)
-                        player:setVar("PUP_AttachmentReady",getMidnight());
+                        player:setVar("PUP_AttachmentReady");
                         player:setVar("PUP_AttachmentWait",math.random(1,3));
                         player:startEvent(902);
                     elseif (trade:getItemQty(4878) == 1) then
                         player:tradeComplete();
                         player:setVar("PUP_AttachmentStatus", 13)
-                        player:setVar("PUP_AttachmentReady",getMidnight());
+                        player:setVar("PUP_AttachmentReady");
                         player:setVar("PUP_AttachmentWait",math.random(2,3));
                         player:startEvent(902);
                     elseif (trade:getItemQty(4752) == 1) then
                         player:tradeComplete();
                         player:setVar("PUP_AttachmentStatus", 13)
-                        player:setVar("PUP_AttachmentReady",getMidnight());
+                        player:setVar("PUP_AttachmentReady");
                         player:setVar("PUP_AttachmentWait",4);
                         player:startEvent(902);
                     end
@@ -264,19 +260,19 @@ function onTrade(player,npc,trade)
                     if (trade:getItemQty(4613) == 1) then
                         player:tradeComplete();
                         player:setVar("PUP_AttachmentStatus", 12)
-                        player:setVar("PUP_AttachmentReady",getMidnight());
+                        player:setVar("PUP_AttachmentReady");
                         player:setVar("PUP_AttachmentWait",math.random(1,3));
                         player:startEvent(902);
                     elseif (trade:getItemQty(4716) == 1) then
                         player:tradeComplete();
                         player:setVar("PUP_AttachmentStatus", 12)
-                        player:setVar("PUP_AttachmentReady",getMidnight());
+                        player:setVar("PUP_AttachmentReady");
                         player:setVar("PUP_AttachmentWait",math.random(2,3));
                         player:startEvent(902);
                     elseif (trade:getItemQty(4610) == 1) then
                         player:tradeComplete();
                         player:setVar("PUP_AttachmentStatus", 12)
-                        player:setVar("PUP_AttachmentReady",getMidnight());
+                        player:setVar("PUP_AttachmentReady");
                         player:setVar("PUP_AttachmentWait",4);
                         player:startEvent(902);
                     end
@@ -284,19 +280,19 @@ function onTrade(player,npc,trade)
                     if (trade:getItemQty(4770) == 1) then
                         player:tradeComplete();
                         player:setVar("PUP_AttachmentStatus", 13)
-                        player:setVar("PUP_AttachmentReady",getMidnight());
+                        player:setVar("PUP_AttachmentReady");
                         player:setVar("PUP_AttachmentWait",math.random(1,3));
                         player:startEvent(902);
                     elseif (trade:getItemQty(4878) == 1) then
                         player:tradeComplete();
                         player:setVar("PUP_AttachmentStatus", 13)
-                        player:setVar("PUP_AttachmentReady",getMidnight());
+                        player:setVar("PUP_AttachmentReady");
                         player:setVar("PUP_AttachmentWait",math.random(2,3));
                         player:startEvent(902);
                     elseif (trade:getItemQty(4752) == 1) then
                         player:tradeComplete();
                         player:setVar("PUP_AttachmentStatus", 13)
-                        player:setVar("PUP_AttachmentReady",getMidnight());
+                        player:setVar("PUP_AttachmentReady");
                         player:setVar("PUP_AttachmentWait",4);
                         player:startEvent(902);
                     end
@@ -306,16 +302,12 @@ function onTrade(player,npc,trade)
     elseif ((attachmentStatus == 12 or attachmentStatus == 13) and attachmentWait > 0 and attachmentReady == true) then
         if (trade:getSlotCount() == 1 and trade:getItemQty(5592) == 1) then
             player:tradeComplete();
-            player:setVar("PUP_AttachmentReady",getMidnight());
+            player:setVar("PUP_AttachmentReady");
             player:setVar("PUP_AttachmentWait",attachmentWait - 1);
             player:startEvent(904);
         end
     end
-end; 
-
------------------------------------
--- onTrigger Action
------------------------------------
+end;
 
 function onTrigger(player,npc)
 
@@ -326,7 +318,7 @@ function onTrigger(player,npc)
     --cs 625 - thanks, have everything, come back later
     --cs 626 - come back later
     --cs 627 - automaton frame done (param 2: frame)
-    --cs 628 - you can customise automaton by changing frame 
+    --cs 628 - you can customise automaton by changing frame
     --cs 629 - you can alter automatons abilities and character by equipping attachments (what are these last 2 for?)
     --cs 900 - start soulsoother/spiritreaver
     --cs 901 - start second head
@@ -334,7 +326,7 @@ function onTrigger(player,npc)
     --cs 903 - head almost done
     --cs 904 - give coffee
     --cs 905 - head complete
-    
+
     local NoStringsAttached = player:getQuestStatus(AHT_URHGAN,NO_STRINGS_ATTACHED);
     local NoStringsAttachedProgress = player:getVar("NoStringsAttachedProgress");
     local Automaton = player:hasKeyItem(798);
@@ -348,7 +340,7 @@ function onTrigger(player,npc)
     local attachmentTime = player:getVar("PUP_AttachmentReady");
     local attachmentReady = (attachmentTime ~= 0 and attachmentTime < os.time());
     local attachmentWait = player:getVar("PUP_AttachmentWait");
-    
+
     --[[
         attachment status:
         0 - none
@@ -376,19 +368,19 @@ function onTrigger(player,npc)
         player:startEvent(264); -- you give the antique automaton to him and need to wait a gameday
     elseif (NoStringsAttached == QUEST_ACCEPTED and NoStringsAttachedProgress == 5 and CreationReady == true) then
         player:startEvent(265); -- you go back for your automaton
-    elseif (NoStringsAttached == QUEST_COMPLETED and attachments == 0 and attachmentStatus == 0 and player:getMainJob() == JOBS.PUP and player:getMainLvl() >= 10) then
+    elseif (NoStringsAttached == QUEST_COMPLETED and attachments == 0 and attachmentStatus == 0 and player:getMainJob() == dsp.job.PUP and player:getMainLvl() >= 10) then
         player:startEventString(620, automatonName, automatonName, automatonName, automatonName, attachments, 0, 0, 0, 0, 2185, 3, unlockedAttachments);
     elseif (NoStringsAttached == QUEST_COMPLETED and attachments == 0 and attachmentStatus == 1) then
         player:startEvent(621, 0, 0, 0, 0, 0, 2185, 3, unlockedAttachments);
-    elseif (NoStringsAttached == QUEST_COMPLETED and attachments == 1 and attachmentStatus == 0 and player:getMainJob() == JOBS.PUP and player:getMainLvl() >= 20) then
+    elseif (NoStringsAttached == QUEST_COMPLETED and attachments == 1 and attachmentStatus == 0 and player:getMainJob() == dsp.job.PUP and player:getMainLvl() >= 20) then
         player:startEventString(620, automatonName, automatonName, automatonName, automatonName, attachments, 0, 0, 0, 0, 2186, 3, unlockedAttachments);
     elseif (NoStringsAttached == QUEST_COMPLETED and attachments == 1 and attachmentStatus == 1) then
         player:startEvent(621, 0, 0, 0, 0, 0, 2186, 3, unlockedAttachments);
-    elseif (NoStringsAttached == QUEST_COMPLETED and attachments == 2 and attachmentStatus == 0 and player:getMainJob() == JOBS.PUP and player:getMainLvl() >= 30) then
+    elseif (NoStringsAttached == QUEST_COMPLETED and attachments == 2 and attachmentStatus == 0 and player:getMainJob() == dsp.job.PUP and player:getMainLvl() >= 30) then
         player:startEventString(620, automatonName, automatonName, automatonName, automatonName, attachments, 0, 0, 0, 0, 2187, 1, unlockedAttachments);
-    elseif (NoStringsAttached == QUEST_COMPLETED and attachments == 3 and attachmentStatus == 0 and player:getMainJob() == JOBS.PUP and player:getMainLvl() >= 40) then
+    elseif (NoStringsAttached == QUEST_COMPLETED and attachments == 3 and attachmentStatus == 0 and player:getMainJob() == dsp.job.PUP and player:getMainLvl() >= 40) then
         player:startEventString(900, automatonName, automatonName, automatonName, automatonName, 0, 0, 0, 0, 0, 2186, 2);
-    elseif (NoStringsAttached == QUEST_COMPLETED and attachments == 4 and attachmentStatus == 0 and player:getMainJob() == JOBS.PUP and player:getMainLvl() >= 50) then
+    elseif (NoStringsAttached == QUEST_COMPLETED and attachments == 4 and attachmentStatus == 0 and player:getMainJob() == dsp.job.PUP and player:getMainLvl() >= 50) then
         if (unlockedAttachments == 30) then
             player:startEventString(901, automatonName, automatonName, automatonName, automatonName, 1, 0, 0, 0, 0, 2186, 4);
         elseif (unlockedAttachments == 46) then
@@ -449,7 +441,7 @@ function onTrigger(player,npc)
             player:startEventString(901, automatonName, automatonName, automatonName, automatonName, 1, 0, 1, 0, 0, 2186, 4);
         elseif (unlockedAttachments == 46) then
             player:startEventString(901, automatonName, automatonName, automatonName, automatonName, 0, 0, 1, 0, 0, 2186, 4);
-        end    
+        end
     elseif (attachments > 0) then
         local rand = math.random(1,2);
         if (rand == 1) then
@@ -462,22 +454,10 @@ function onTrigger(player,npc)
     end;
 end;
 
------------------------------------
--- onEventUpdate
------------------------------------
-
 function onEventUpdate(player,csid,option)
-    -- printf("CSID: %u",csid);
-    -- printf("RESULT: %u",option);
 end;
 
------------------------------------
--- onEventFinish
------------------------------------
-
 function onEventFinish(player,csid,option)
-    -- printf("CSID: %u",csid);
-    -- printf("RESULT: %u",option);
 
     if (csid == 262) then
         player:setVar("NoStringsAttachedProgress",3);

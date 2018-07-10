@@ -1,6 +1,6 @@
 -----------------------------------
 -- Area: Windurst Woods
--- NPC:  Apururu
+--  NPC: Apururu
 -- Involved in Quests: The Kind Cardian, Can Cardians Cry?
 -- @zone 241
 -- !pos -11 -2 13
@@ -18,9 +18,6 @@ require("scripts/globals/keyitems");
 require("scripts/globals/missions");
 require("scripts/globals/quests");
 require("scripts/zones/Windurst_Woods/TextIDs");
-
------------------------------------
--- onTrade Action
 -----------------------------------
 
 function onTrade(player,npc,trade)
@@ -44,10 +41,6 @@ local C3 = player:getQuestStatus(WINDURST,CAN_CARDIANS_CRY);
 
     end
 end;
-
------------------------------------
--- onTrigger Action
------------------------------------
 
 function onTrigger(player,npc)
 
@@ -120,40 +113,28 @@ local MissionStatus = player:getVar("MissionStatus");
     end
 end;
 
------------------------------------
--- onEventUpdate
------------------------------------
-
 function onEventUpdate(player,csid,option)
-    -- printf("CSID: %u",csid);
-    -- printf("RESULT: %u",option);
 end;
 
------------------------------------
--- onEventFinish
------------------------------------
-
 function onEventFinish(player,csid,option)
-    -- printf("CSID: %u",csid);
-    -- printf("RESULT: %u",option);
 
     -- Windurst mission 1-2 start
     if (csid == 137) then
         player:setVar("MissionStatus",1);
 
-        player:addKeyItem(FIRST_DARK_MANA_ORB);    -- Give the player the key items
-        player:addKeyItem(SECOND_DARK_MANA_ORB);
-        player:addKeyItem(THIRD_DARK_MANA_ORB);
-        player:addKeyItem(FOURTH_DARK_MANA_ORB);
-        player:addKeyItem(FIFTH_DARK_MANA_ORB);
-        player:addKeyItem(SIXTH_DARK_MANA_ORB);
+        player:addKeyItem(dsp.ki.FIRST_DARK_MANA_ORB);    -- Give the player the key items
+        player:addKeyItem(dsp.ki.SECOND_DARK_MANA_ORB);
+        player:addKeyItem(dsp.ki.THIRD_DARK_MANA_ORB);
+        player:addKeyItem(dsp.ki.FOURTH_DARK_MANA_ORB);
+        player:addKeyItem(dsp.ki.FIFTH_DARK_MANA_ORB);
+        player:addKeyItem(dsp.ki.SIXTH_DARK_MANA_ORB);
 
-        player:messageSpecial(KEYITEM_OBTAINED,FIRST_DARK_MANA_ORB);    -- Display the key item messages
-        player:messageSpecial(KEYITEM_OBTAINED,SECOND_DARK_MANA_ORB);
-        player:messageSpecial(KEYITEM_OBTAINED,THIRD_DARK_MANA_ORB);
-        player:messageSpecial(KEYITEM_OBTAINED,FOURTH_DARK_MANA_ORB);
-        player:messageSpecial(KEYITEM_OBTAINED,FIFTH_DARK_MANA_ORB);
-        player:messageSpecial(KEYITEM_OBTAINED,SIXTH_DARK_MANA_ORB);
+        player:messageSpecial(KEYITEM_OBTAINED,dsp.ki.FIRST_DARK_MANA_ORB);    -- Display the key item messages
+        player:messageSpecial(KEYITEM_OBTAINED,dsp.ki.SECOND_DARK_MANA_ORB);
+        player:messageSpecial(KEYITEM_OBTAINED,dsp.ki.THIRD_DARK_MANA_ORB);
+        player:messageSpecial(KEYITEM_OBTAINED,dsp.ki.FOURTH_DARK_MANA_ORB);
+        player:messageSpecial(KEYITEM_OBTAINED,dsp.ki.FIFTH_DARK_MANA_ORB);
+        player:messageSpecial(KEYITEM_OBTAINED,dsp.ki.SIXTH_DARK_MANA_ORB);
 
         player:setVar("MissionStatus_orb1",1);    -- Set the orb variables; 1 = not handled; 2 = handled;
         player:setVar("MissionStatus_orb2",1);
@@ -173,18 +154,18 @@ function onEventFinish(player,csid,option)
         player:setVar("MissionStatus_orb6",0);
 
 
-        player:delKeyItem(FIRST_GLOWING_MANA_ORB);    -- Remove the glowing orb key items
-        player:delKeyItem(SECOND_GLOWING_MANA_ORB);
-        player:delKeyItem(THIRD_GLOWING_MANA_ORB);
-        player:delKeyItem(FOURTH_GLOWING_MANA_ORB);
-        player:delKeyItem(FIFTH_GLOWING_MANA_ORB);
-        player:delKeyItem(SIXTH_GLOWING_MANA_ORB);
+        player:delKeyItem(dsp.ki.FIRST_GLOWING_MANA_ORB);    -- Remove the glowing orb key items
+        player:delKeyItem(dsp.ki.SECOND_GLOWING_MANA_ORB);
+        player:delKeyItem(dsp.ki.THIRD_GLOWING_MANA_ORB);
+        player:delKeyItem(dsp.ki.FOURTH_GLOWING_MANA_ORB);
+        player:delKeyItem(dsp.ki.FIFTH_GLOWING_MANA_ORB);
+        player:delKeyItem(dsp.ki.SIXTH_GLOWING_MANA_ORB);
 
     -- The Kind Cardian
     elseif (csid == 392 and option == 1) then
         player:setVar("theKindCardianVar",1);
     elseif (csid == 397) then
-        player:delKeyItem(TWO_OF_SWORDS);
+        player:delKeyItem(dsp.ki.TWO_OF_SWORDS);
         player:setVar("theKindCardianVar",2);
         player:addFame(WINDURST,30);
         player:tradeComplete();
@@ -192,7 +173,7 @@ function onEventFinish(player,csid,option)
     -- Windurst 8-2
     elseif (csid == 588) then
         player:setVar("MissionStatus",1);
-        player:addKeyItem(MANUSTERY_RING);
+        player:addKeyItem(dsp.ki.MANUSTERY_RING);
     elseif (csid == 601) then
         player:setVar("MissionStatus",3);
     elseif (csid == 590) then
@@ -210,8 +191,8 @@ function onEventFinish(player,csid,option)
         player:setVar("MissionStatus",4);
     elseif (csid == 621) then
         player:setVar("MissionStatus",7);
-        player:messageSpecial(KEYITEM_LOST,LETTER_FROM_ZONPAZIPPA);
-        player:delKeyItem(LETTER_FROM_ZONPAZIPPA);
+        player:messageSpecial(KEYITEM_LOST,dsp.ki.LETTER_FROM_ZONPAZIPPA);
+        player:delKeyItem(dsp.ki.LETTER_FROM_ZONPAZIPPA);
 
     -- Can Cardians Cry
     elseif (csid == 319) then

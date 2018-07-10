@@ -4,24 +4,13 @@
 -----------------------------------
 require("scripts/globals/status");
 require("scripts/globals/magic");
-
------------------------------------
--- onMobInitialize
 -----------------------------------
 
 function onMobInitialize(mob)
 end;
 
------------------------------------
--- onMobSpawn Action
------------------------------------
-
 function onMobSpawn(mob)
 end;
-
------------------------------------
--- onMobFight Action
------------------------------------
 
 function onMobFight(mob, target)
     local popTime = mob:getLocalVar("lastPetPop");
@@ -43,11 +32,7 @@ function onMobFight(mob, target)
     end
 end;
 
------------------------------------
--- onMobDeath
------------------------------------
-
 function onMobDeath(mob, player, isKiller)
-	player:addCurrency('bayld', 5);
+player:addCurrency('bayld', 5);
     player:messageSpecial(BAYLD_OBTAINED, 5);
 end;

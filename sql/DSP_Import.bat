@@ -1,4 +1,5 @@
-cd C:\Users\Daniel\Desktop\darkstar-master\sql
+@echo off
+cd C:\Users\Daniel\Desktop\NIGHTBROOD\darkstar-master\sql
 del account_ip_record.sql
 del accounts.sql
 del accounts_banned.sql
